@@ -5,8 +5,8 @@ description = "A Tauri App"
 authors = ["you"]
 license = ""
 repository = ""
-edition = "2021"
-rust-version = "1.77.2"
+edition = "2024"
+rust-version = "1.85.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -23,3 +23,75 @@ serde = { version = "1.0", features = ["derive"] }
 log = "0.4"
 tauri = { version = "2.10.3", features = [] }
 tauri-plugin-log = "2"
+
+ariadne = { path = "../../code/packages/ariadne" }
+async-compression = { version = "0.4.32", default-features = false, features = ["gzip", "tokio"] }
+async-minecraft-ping = { path = "../../code/packages/async-minecraft-ping", features = ["srv"] }
+async-recursion = "1.1.1"
+async-tungstenite = { version = "0.31.0", default-features = false, features = ["tokio-runtime", "tokio-rustls-webpki-roots"] }
+async-walkdir = "2.1.0"
+async_zip = { version = "0.0.18", features = ["bzip2", "chrono", "deflate", "deflate64", "tokio-fs", "zstd"] }
+base64 = "0.22.1"
+bytemuck = { version = "1.24.0", features = ["extern_crate_alloc"] }
+bytes = { version = "1.10.1", features = ["serde"] }
+chardetng = "0.1.17"
+chrono = { version = "0.4.42", features = ["serde"] }
+daedalus = { path = "../../code/packages/daedalus" }
+dashmap = { version = "6.1.0", features = ["serde"] }
+data-url = "0.3.2"
+derive_more = { version = "2.0.1", features = ["display"] }
+dirs = "6.0.0"
+discord-rich-presence = "1.0.0"
+dunce = "1.0.5"
+either = "1.15.0"
+encoding_rs = "0.8.35"
+enumset = "1.1.10"
+flate2 = "1.1.4"
+fs4 = { version = "0.13.1", default-features = false, features = ["tokio"] }
+futures = { version = "0.3.31", features = ["alloc", "async-await"] }
+heck = "0.5.0"
+hickory-resolver = "0.25.2"
+indicatif = "0.18.0"
+itertools = "0.14.0"
+notify = { version = "8.2.0", default-features = false }
+notify-debouncer-mini = { version = "0.7.0", default-features = false }
+p256 = { version = "0.13.2", features = ["ecdsa"] }
+parking_lot = "0.12.5"
+paste = "1.0.15"
+path-util = { path = "../../code/packages/path-util" }
+png = "0.18.0"
+quartz_nbt = { version = "0.2.9", features = ["serde"] }
+quick-xml = { version = "0.38.3", features = ["async-tokio"] }
+rand = "0.8.5"
+regex = "1.12.2"
+reqwest = { version = "0.12.24", default-features = false, features = ["brotli", "charset", "deflate", "gzip", "http2", "json", "macos-system-configuration", "multipart", "rustls-tls-webpki-roots", "stream"] }
+rgb = "0.8.52"
+serde_ini = "0.2.0"
+serde_with = "3.15.0"
+sha1_smol = { version = "1.0.1", features = ["std"] }
+sha2 = "0.10.9"
+shlex = "1.3.0"
+sqlx = { version = "0.8.6", default-features = false, features = ["json", "macros", "migrate", "runtime-tokio", "sqlite", "uuid"] }
+sysinfo = { version = "0.37.2", default-features = false, features = ["disk", "system"] }
+tempfile = "3.23.0"
+thiserror = "1.0.64"
+tokio = { version = "1.47.1", features = ["fs", "io-util", "macros", "net", "process", "sync", "time"] }
+tokio-util = { version = "0.7.16", features = ["compat", "io", "io-util", "time"] }
+tracing = "0.1.41"
+tracing-error = "0.2.1"
+tracing-subscriber = { version = "0.3.20", features = ["chrono", "env-filter"] }
+url = { version = "2.5.7", features = ["serde"] }
+uuid = { version = "1.18.1", features = ["serde", "v4"] }
+whoami = "1.6.1"
+zbus = "5.11.0"
+zip = { version = "6.0.0", default-features = false, features = ["bzip2", "deflate", "deflate64", "zstd"] }
+dotenvy = "0.15.7"
+phf = { version = "0.11", features = ["macros"] }
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.61.3", features = ["Networking_Connectivity"] }
+windows-core = "0.61.2"
+winreg = "0.55.0"
+
+[features]
+tauri = []

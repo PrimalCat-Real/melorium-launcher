@@ -14,6 +14,9 @@ interface CardGradientBorderProps extends useRender.ComponentProps<'div'> {
     to?: string
     fixedWidth?: number
     fixedHeight?: number
+    radius?: number | string
+    strokeWidth?: number
+    gradientAngle?: number
 }
 
 const CardGradientBorder = ({
@@ -26,6 +29,9 @@ const CardGradientBorder = ({
     to = "#666666",
     fixedWidth,
     fixedHeight,
+    radius = 0,
+    strokeWidth = 2,
+    gradientAngle = 180, // Default to top-to-bottom
     ...props
 }: CardGradientBorderProps) => {
     const gradientId = useId()
@@ -56,9 +62,16 @@ const CardGradientBorder = ({
         return () => sizeObserver.disconnect()
     }, [hasFixedSize])
 
+    // Calculate linear gradient points based on angle
+    const angleRad = (gradientAngle * Math.PI) / 180
+    const x1 = Math.round(50 + 50 * Math.sin(angleRad + Math.PI))
+    const y1 = Math.round(50 + 50 * Math.cos(angleRad))
+    const x2 = Math.round(50 + 50 * Math.sin(angleRad))
+    const y2 = Math.round(50 + 50 * Math.cos(angleRad + Math.PI))
+
     const gradients: Record<GradientType, ReactNode> = {
         linear: (
-            <linearGradient id={gradientId} x1="0%" y1="0%" x2="0%" y2="100%">
+            <linearGradient id={gradientId} x1={`${x1}%`} y1={`${y1}%`} x2={`${x2}%`} y2={`${y2}%`}>
                 <stop offset="0%" stopColor={from} />
                 {via && <stop offset="50%" stopColor={via} />}
                 <stop offset="100%" stopColor={to} />
@@ -87,13 +100,15 @@ const CardGradientBorder = ({
                     xmlns="http://www.w3.org/2000/svg"
                 >
                     <rect
-                        x="0"
-                        y="0"
-                        width={width}
-                        height={height}
+                        x={strokeWidth / 2}
+                        y={strokeWidth / 2}
+                        width={width - strokeWidth}
+                        height={height - strokeWidth}
+                        rx={radius}
+                        ry={radius}
                         stroke={`url(#${gradientId})`}
                         vectorEffect="non-scaling-stroke"
-                        strokeWidth={2}
+                        strokeWidth={strokeWidth}
                     />
                     <defs>
                         {gradients[type]}
