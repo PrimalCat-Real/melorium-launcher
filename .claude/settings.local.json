@@ -8,7 +8,15 @@
       "WebFetch(domain:github.com)",
       "WebFetch(domain:dev.to)",
       "Bash(git remote *)",
-      "Bash(cargo check *)"
+      "Bash(cargo check *)",
+      "Bash(cp -r \"C:/Projects/code/packages/ariadne/src\" \"c:/Projects/melorium-launcher/packages/ariadne/src\")",
+      "Bash(cp -r \"C:/Projects/code/packages/async-minecraft-ping/src\" \"c:/Projects/melorium-launcher/packages/async-minecraft-ping/src\")",
+      "Bash(cp -r \"C:/Projects/code/packages/daedalus/src\" \"c:/Projects/melorium-launcher/packages/daedalus/src\")",
+      "Bash(cp -r \"C:/Projects/code/packages/path-util/src\" \"c:/Projects/melorium-launcher/packages/path-util/src\")",
+      "Bash(cp -r \"C:/Projects/code/packages/ariadne/src\" \"c:/Projects/melorium-launcher/packages/ariadne/\")",
+      "Bash(cp -r \"C:/Projects/code/packages/async-minecraft-ping/src\" \"c:/Projects/melorium-launcher/packages/async-minecraft-ping/\")",
+      "Bash(cp -r \"C:/Projects/code/packages/daedalus/src\" \"c:/Projects/melorium-launcher/packages/daedalus/\")",
+      "Bash(cp -r \"C:/Projects/code/packages/path-util/src\" \"c:/Projects/melorium-launcher/packages/path-util/\")"
     ]
   }
 }
