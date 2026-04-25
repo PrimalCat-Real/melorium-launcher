@@ -1,4 +1,5 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+.claude
 
 # dependencies
 /node_modules
@@ -41,6 +42,14 @@ yarn-error.log*
 *.key
 *.key.pub
 
+# tauri build output (also in src-tauri/.gitignore but kept here for clarity)
+src-tauri/target/
+src-tauri/gen/schemas/
+src-tauri/cargo-errors.json
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# claude code local settings
+.claude/settings.local.json
