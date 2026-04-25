@@ -27,7 +27,9 @@
   "plugins": {
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEI4Mjk3Q0VGMDlDRTRBMQpSV1NoNUp6d3pwZUNDNmE2RVlYS0JNWHljbDYxNVJMTVMvQnVUREVEekRRcHFmaU1ZT2dEMVhPMwo=",
-      "endpoints": [],
+      "endpoints": [
+        "https://github.com/PrimalCat-Real/melorium-launcher/releases/latest/download/latest.json"
+      ],
       "dialog": false
     }
   },
