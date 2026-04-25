@@ -89,7 +89,7 @@ dotenvy = "0.15.7"
 phf = { version = "0.11", features = ["macros"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
-cidre = { version = "0.11.3", default-features = false, features = ["macos_15_0"] }
+cidre = { version = "0.11.3", default-features = false, features = ["macos_15_0", "dispatch", "nw"] }
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.61.3", features = ["Networking_Connectivity"] }
