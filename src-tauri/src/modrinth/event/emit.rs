@@ -1,11 +1,8 @@
 use super::{FriendPayload, LoadingBarId};
 use crate::modrinth::event::{
-    CommandPayload, EventError, LoadingBar, LoadingBarType, ProcessPayloadType,
-    ProfilePayloadType,
+    CommandPayload, EventError, LoadingBar, LoadingBarType, ProcessPayloadType, ProfilePayloadType,
 };
-use crate::modrinth::event::{
-    LoadingPayload, ProcessPayload, ProfilePayload, WarningPayload,
-};
+use crate::modrinth::event::{LoadingPayload, ProcessPayload, ProfilePayload, WarningPayload};
 use futures::prelude::*;
 use tauri::{Emitter, Manager};
 use uuid::Uuid;
@@ -158,9 +155,9 @@ pub fn emit_loading(
                     .map(|x| x.to_string())
                     .unwrap_or(loading_bar.message.clone()),
             );
-            loading_bar.cli_progress_bar.set_position(
-                (display_frac * CLI_PROGRESS_BAR_TOTAL as f64).round() as u64,
-            );
+            loading_bar
+                .cli_progress_bar
+                .set_position((display_frac * CLI_PROGRESS_BAR_TOTAL as f64).round() as u64);
         }
 
         //Emit event to tauri
@@ -175,9 +172,7 @@ pub fn emit_loading(
                     } else {
                         Some(display_frac)
                     },
-                    message: message
-                        .unwrap_or(&loading_bar.message)
-                        .to_string(),
+                    message: message.unwrap_or(&loading_bar.message).to_string(),
                     event: loading_bar.bar_type.clone(),
                     loader_uuid: loading_bar.loading_bar_uuid,
                 },
@@ -379,4 +374,3 @@ where
         })
         .await
 }
-

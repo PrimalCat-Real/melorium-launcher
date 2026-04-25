@@ -96,10 +96,7 @@ impl DiscordGuard {
     }
 
     /// Clear the activity entirely ('disabling' the RPC until the next set_activity)
-    pub async fn clear_activity(
-        &self,
-        reconnect_if_fail: bool,
-    ) -> crate::modrinth::Result<()> {
+    pub async fn clear_activity(&self, reconnect_if_fail: bool) -> crate::modrinth::Result<()> {
         // Attempt to connect if not connected. Do not continue if it fails, as the client.clear_activity can panic if it never was connected
         if !self.retry_if_not_ready().await {
             return Ok(());
@@ -122,10 +119,7 @@ impl DiscordGuard {
     }
 
     /// Clear the activity, but if there is a running profile, set the activity to that instead
-    pub async fn clear_to_default(
-        &self,
-        reconnect_if_fail: bool,
-    ) -> crate::modrinth::Result<()> {
+    pub async fn clear_to_default(&self, reconnect_if_fail: bool) -> crate::modrinth::Result<()> {
         let state = State::get().await?;
 
         let settings = crate::modrinth::state::Settings::get(&state.pool).await?;
@@ -136,14 +130,10 @@ impl DiscordGuard {
 
         let running_profiles = state.process_manager.get_all();
         if let Some(existing_child) = running_profiles.first() {
-            let prof =
-                Profile::get(&existing_child.profile_path, &state.pool).await?;
+            let prof = Profile::get(&existing_child.profile_path, &state.pool).await?;
             if let Some(prof) = prof {
-                self.set_activity(
-                    &format!("Playing {}", prof.name),
-                    reconnect_if_fail,
-                )
-                .await?;
+                self.set_activity(&format!("Playing {}", prof.name), reconnect_if_fail)
+                    .await?;
             }
         } else {
             self.set_activity("Idling...", reconnect_if_fail).await?;

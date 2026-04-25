@@ -171,8 +171,7 @@ impl Settings {
                 .and_then(|x| serde_json::from_str(x).ok())
                 .unwrap_or_default(),
             skipped_update: res.skipped_update,
-            pending_update_toast_for_version: res
-                .pending_update_toast_for_version,
+            pending_update_toast_for_version: res.pending_update_toast_for_version,
             auto_download_updates: res.auto_download_updates.map(|x| x == 1),
             version: res.version as usize,
         })
@@ -311,20 +310,17 @@ impl Settings {
 
                 // Previously split by spaces
                 if let Some(pre_launch) = self.hooks.pre_launch.as_ref() {
-                    self.hooks.pre_launch =
-                        Some(quoter.join(pre_launch.split(' ')).unwrap())
+                    self.hooks.pre_launch = Some(quoter.join(pre_launch.split(' ')).unwrap())
                 }
 
                 // Previously treated as complete path to command
                 if let Some(wrapper) = self.hooks.wrapper.as_ref() {
-                    self.hooks.wrapper =
-                        Some(quoter.quote(wrapper).unwrap().to_string())
+                    self.hooks.wrapper = Some(quoter.quote(wrapper).unwrap().to_string())
                 }
 
                 // Previously split by spaces
                 if let Some(post_exit) = self.hooks.post_exit.as_ref() {
-                    self.hooks.post_exit =
-                        Some(quoter.join(post_exit.split(' ')).unwrap())
+                    self.hooks.post_exit = Some(quoter.join(post_exit.split(' ')).unwrap())
                 }
 
                 self.version = 2;

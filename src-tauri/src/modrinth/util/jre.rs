@@ -7,7 +7,8 @@ use std::process::Command;
 use std::{collections::HashSet, path::Path};
 use tokio::task::JoinError;
 
-use crate::get_resource_file; use crate::modrinth::State;
+use crate::get_resource_file;
+use crate::modrinth::State;
 #[cfg(target_os = "windows")]
 use winreg::{
     RegKey,
@@ -86,12 +87,10 @@ pub fn get_paths_from_jre_winregkey(jre_key: RegKey) -> HashSet<PathBuf> {
 
     for subkey in jre_key.enum_keys().flatten() {
         if let Ok(subkey) = jre_key.open_subkey(subkey) {
-            let subkey_value_names =
-                [r"JavaHome", r"InstallationPath", r"\\hotspot\\MSI"];
+            let subkey_value_names = [r"JavaHome", r"InstallationPath", r"\\hotspot\\MSI"];
 
             for subkey_value in subkey_value_names {
-                let path: Result<String, std::io::Error> =
-                    subkey.get_value(subkey_value);
+                let path: Result<String, std::io::Error> = subkey.get_value(subkey_value);
                 let Ok(path) = path else { continue };
 
                 jre_paths.insert(PathBuf::from(path).join("bin"));
@@ -183,8 +182,7 @@ pub async fn get_all_jre() -> Result<Vec<JavaVersion>, JREError> {
 
 // Gets all JREs from the PATH env variable
 #[tracing::instrument]
-async fn get_all_autoinstalled_jre_path() -> Result<HashSet<PathBuf>, JREError>
-{
+async fn get_all_autoinstalled_jre_path() -> Result<HashSet<PathBuf>, JREError> {
     Box::pin(async move {
         let state = State::get().await.map_err(|_| JREError::StateError)?;
 
@@ -197,8 +195,7 @@ async fn get_all_autoinstalled_jre_path() -> Result<HashSet<PathBuf>, JREError>
             for entry in dir.flatten() {
                 let file_path = entry.path().join("bin");
 
-                if let Ok(contents) = std::fs::read_to_string(file_path.clone())
-                {
+                if let Ok(contents) = std::fs::read_to_string(file_path.clone()) {
                     let entry = entry.path().join(contents);
                     jre_paths.insert(entry);
                 } else {
@@ -220,8 +217,7 @@ async fn get_all_autoinstalled_jre_path() -> Result<HashSet<PathBuf>, JREError>
 #[tracing::instrument]
 async fn get_all_jre_path() -> HashSet<PathBuf> {
     // Iterate over values in PATH variable, where accessible JREs are referenced
-    let paths =
-        env::var("PATH").map(|x| env::split_paths(&x).collect::<HashSet<_>>());
+    let paths = env::var("PATH").map(|x| env::split_paths(&x).collect::<HashSet<_>>());
     paths.unwrap_or_else(|_| HashSet::new())
 }
 
@@ -234,13 +230,9 @@ pub const JAVA_BIN: &str = if cfg!(target_os = "windows") {
 // For each example filepath in 'paths', perform check_java_at_filepath, checking each one concurrently
 // and returning a JavaVersion for every valid path that points to a java bin
 #[tracing::instrument]
-pub async fn check_java_at_filepaths(
-    paths: HashSet<PathBuf>,
-) -> HashSet<JavaVersion> {
+pub async fn check_java_at_filepaths(paths: HashSet<PathBuf>) -> HashSet<JavaVersion> {
     stream::iter(paths.into_iter())
-        .map(|p: PathBuf| {
-            tokio::task::spawn(async move { check_java_at_filepath(&p).await })
-        })
+        .map(|p: PathBuf| tokio::task::spawn(async move { check_java_at_filepath(&p).await }))
         .buffer_unordered(64)
         .filter_map(async |x| x.ok().and_then(Result::ok))
         .collect()
@@ -271,8 +263,7 @@ pub async fn check_java_at_filepath(path: &Path) -> crate::modrinth::Result<Java
         return Err(JREError::NoExecutable(java).into());
     };
 
-    let (_temp, file_path) =
-        get_resource_file!(directory: ".", file: "theseus.jar")?;
+    let (_temp, file_path) = get_resource_file!(directory: ".", file: "theseus.jar")?;
 
     let output = Command::new(&java)
         .arg("-cp")

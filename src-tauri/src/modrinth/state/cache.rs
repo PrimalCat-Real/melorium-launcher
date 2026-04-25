@@ -89,9 +89,9 @@ impl CacheValueType {
     /// Returns the expiry time for entries of this type of cache item, in seconds.
     pub fn expiry(&self) -> i64 {
         match self {
-            CacheValueType::File => 30 * 24 * 60 * 60, // 30 days
+            CacheValueType::File => 30 * 24 * 60 * 60,     // 30 days
             CacheValueType::FileHash => 30 * 24 * 60 * 60, // 30 days
-            _ => 30 * 60,                              // 30 minutes
+            _ => 30 * 60,                                  // 30 minutes
         }
     }
 
@@ -485,16 +485,12 @@ impl CacheValue {
             CacheValue::Organization(_) => CacheValueType::Organization,
             CacheValue::File { .. } => CacheValueType::File,
             CacheValue::LoaderManifest { .. } => CacheValueType::LoaderManifest,
-            CacheValue::MinecraftManifest(_) => {
-                CacheValueType::MinecraftManifest
-            }
+            CacheValue::MinecraftManifest(_) => CacheValueType::MinecraftManifest,
             CacheValue::Categories(_) => CacheValueType::Categories,
             CacheValue::ReportTypes(_) => CacheValueType::ReportTypes,
             CacheValue::Loaders(_) => CacheValueType::Loaders,
             CacheValue::GameVersions(_) => CacheValueType::GameVersions,
-            CacheValue::DonationPlatforms(_) => {
-                CacheValueType::DonationPlatforms
-            }
+            CacheValue::DonationPlatforms(_) => CacheValueType::DonationPlatforms,
             CacheValue::FileHash(_) => CacheValueType::FileHash,
             CacheValue::FileUpdate(_) => CacheValueType::FileUpdate,
             CacheValue::SearchResults(_) => CacheValueType::SearchResults,
@@ -525,11 +521,7 @@ impl CacheValue {
             | CacheValue::DonationPlatforms(_) => DEFAULT_ID.to_string(),
 
             CacheValue::FileHash(hash) => {
-                format!(
-                    "{}-{}",
-                    hash.size,
-                    hash.path.trim_end_matches(".disabled")
-                )
+                format!("{}-{}", hash.size, hash.path.trim_end_matches(".disabled"))
             }
             CacheValue::FileUpdate(hash) => {
                 format!(
@@ -551,9 +543,7 @@ impl CacheValue {
             CacheValue::User(user) => Some(user.username.clone()),
             CacheValue::Organization(org) => Some(org.slug.clone()),
 
-            CacheValue::FileHash(_) => {
-                Some(format!("{}.disabled", self.get_key()))
-            }
+            CacheValue::FileHash(_) => Some(format!("{}.disabled", self.get_key())),
 
             CacheValue::MinecraftManifest(_)
             | CacheValue::Categories(_)
@@ -581,22 +571,12 @@ impl CacheValue {
             CacheValue::Organization(org) => serde_json::to_value(org),
             CacheValue::File(file) => serde_json::to_value(file),
             CacheValue::LoaderManifest(loader) => serde_json::to_value(loader),
-            CacheValue::MinecraftManifest(manifest) => {
-                serde_json::to_value(manifest)
-            }
-            CacheValue::Categories(categories) => {
-                serde_json::to_value(categories)
-            }
-            CacheValue::ReportTypes(report_types) => {
-                serde_json::to_value(report_types)
-            }
+            CacheValue::MinecraftManifest(manifest) => serde_json::to_value(manifest),
+            CacheValue::Categories(categories) => serde_json::to_value(categories),
+            CacheValue::ReportTypes(report_types) => serde_json::to_value(report_types),
             CacheValue::Loaders(loaders) => serde_json::to_value(loaders),
-            CacheValue::GameVersions(versions) => {
-                serde_json::to_value(versions)
-            }
-            CacheValue::DonationPlatforms(platforms) => {
-                serde_json::to_value(platforms)
-            }
+            CacheValue::GameVersions(versions) => serde_json::to_value(versions),
+            CacheValue::DonationPlatforms(platforms) => serde_json::to_value(platforms),
             CacheValue::FileHash(hash) => serde_json::to_value(hash),
             CacheValue::FileUpdate(update) => serde_json::to_value(update),
             CacheValue::SearchResults(search) => serde_json::to_value(search),
@@ -613,9 +593,7 @@ impl CacheValue {
     }
 }
 
-#[derive(
-    Deserialize, Serialize, PartialEq, Eq, Debug, Copy, Clone, Default,
-)]
+#[derive(Deserialize, Serialize, PartialEq, Eq, Debug, Copy, Clone, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum CacheBehaviour {
     /// Serve expired data. If fetch fails / launcher is offline, errors are ignored
@@ -739,16 +717,12 @@ impl CachedEntry {
         pool: &SqlitePool,
         fetch_semaphore: &FetchSemaphore,
     ) -> crate::modrinth::Result<Option<Self>> {
-        Ok(Self::get_many(
-            type_,
-            &[key],
-            cache_behaviour,
-            pool,
-            fetch_semaphore,
+        Ok(
+            Self::get_many(type_, &[key], cache_behaviour, pool, fetch_semaphore)
+                .await?
+                .into_iter()
+                .next(),
         )
-        .await?
-        .into_iter()
-        .next())
     }
 
     #[tracing::instrument(skip(pool, fetch_semaphore))]
@@ -779,9 +753,7 @@ impl CachedEntry {
             let alias_keys = if type_.case_sensitive_alias().unwrap_or(true) {
                 serialized_keys.clone()
             } else {
-                serde_json::to_string(
-                    &keys.iter().map(|x| x.to_lowercase()).collect::<Vec<_>>(),
-                )?
+                serde_json::to_string(&keys.iter().map(|x| x.to_lowercase()).collect::<Vec<_>>())?
             };
 
             // unsupported type NULL of column #3 ("data"), so cannot be compile time type checked
@@ -852,18 +824,9 @@ impl CachedEntry {
         }
 
         if !remaining_keys.is_empty() {
-            let res = Self::fetch_many(
-                type_,
-                remaining_keys.clone(),
-                fetch_semaphore,
-                pool,
-            )
-            .await;
+            let res = Self::fetch_many(type_, remaining_keys.clone(), fetch_semaphore, pool).await;
 
-            if res.is_err()
-                && cache_behaviour
-                    == CacheBehaviour::StaleWhileRevalidateSkipOffline
-            {
+            if res.is_err() && cache_behaviour == CacheBehaviour::StaleWhileRevalidateSkipOffline {
                 for key in remaining_keys {
                     expired_keys.insert(key.to_string());
                 }
@@ -890,23 +853,18 @@ impl CachedEntry {
 
         if !expired_keys.is_empty()
             && (cache_behaviour == CacheBehaviour::StaleWhileRevalidate
-                || cache_behaviour
-                    == CacheBehaviour::StaleWhileRevalidateSkipOffline)
+                || cache_behaviour == CacheBehaviour::StaleWhileRevalidateSkipOffline)
         {
             tokio::task::spawn(async move {
                 // TODO: if possible- find a way to do this without invoking state get
                 let state = crate::modrinth::state::State::get().await?;
 
-                let values = Self::fetch_many(
-                    type_,
-                    expired_keys,
-                    &state.api_semaphore,
-                    &state.pool,
-                )
-                .await?
-                .into_iter()
-                .map(|x| x.0)
-                .collect::<Vec<_>>();
+                let values =
+                    Self::fetch_many(type_, expired_keys, &state.api_semaphore, &state.pool)
+                        .await?
+                        .into_iter()
+                        .map(|x| x.0)
+                        .collect::<Vec<_>>();
 
                 if !values.is_empty() {
                     Self::upsert_many(&values, &state.pool).await?;
@@ -940,20 +898,12 @@ impl CachedEntry {
                 .collect::<Vec<_>>()
                 .chunks(MAX_REQUEST_SIZE)
                 .map(|chunk| {
-                    serde_json::to_string(&chunk)
-                        .map(|keys| format!("{api_url}{url}{keys}"))
+                    serde_json::to_string(&chunk).map(|keys| format!("{api_url}{url}{keys}"))
                 })
                 .collect::<Result<Vec<_>, _>>()?;
 
             let res = futures::future::try_join_all(urls.iter().map(|url| {
-                fetch_json::<Vec<_>>(
-                    method.clone(),
-                    url,
-                    None,
-                    None,
-                    fetch_semaphore,
-                    pool,
-                )
+                fetch_json::<Vec<_>>(method.clone(), url, None, None, fetch_semaphore, pool)
             }))
             .await?;
 
@@ -981,9 +931,8 @@ impl CachedEntry {
                 for key in keys {
                     let key = key.to_string();
                     let lower_case_key = key.to_lowercase();
-                    let case_sensitive = CacheValueType::$type
-                        .case_sensitive_alias()
-                        .unwrap_or(true);
+                    let case_sensitive =
+                        CacheValueType::$type.case_sensitive_alias().unwrap_or(true);
 
                     if let Some(position) = results.iter().position(|x| {
                         x.get_key() == key
@@ -1006,13 +955,9 @@ impl CachedEntry {
 
                         values.push((result.get_entry(), true));
                     } else if !visited_keys.contains(&key)
-                        && (case_sensitive
-                            || !visited_keys.contains(&lower_case_key))
+                        && (case_sensitive || !visited_keys.contains(&lower_case_key))
                     {
-                        values.push((
-                            CacheValueType::$type.get_empty_entry(key),
-                            true,
-                        ));
+                        values.push((CacheValueType::$type.get_empty_entry(key), true));
                     }
                 }
 
@@ -1066,12 +1011,7 @@ impl CachedEntry {
                 )
             }
             CacheValueType::User => {
-                fetch_original_values!(
-                    User,
-                    env!("MODRINTH_API_URL"),
-                    "users",
-                    CacheValue::User
-                )
+                fetch_original_values!(User, env!("MODRINTH_API_URL"), "users", CacheValue::User)
             }
             CacheValueType::Team => {
                 let mut teams = fetch_many_batched::<Vec<TeamMember>>(
@@ -1088,25 +1028,19 @@ impl CachedEntry {
                 for key in keys {
                     let key = key.to_string();
 
-                    if let Some(position) = teams.iter().position(|x| {
-                        x.first().is_some_and(|x| x.team_id == key)
-                    }) {
+                    if let Some(position) = teams
+                        .iter()
+                        .position(|x| x.first().is_some_and(|x| x.team_id == key))
+                    {
                         let team = teams.remove(position);
 
                         for member in &team {
-                            values.push((
-                                CacheValue::User(member.user.clone())
-                                    .get_entry(),
-                                false,
-                            ));
+                            values.push((CacheValue::User(member.user.clone()).get_entry(), false));
                         }
 
                         values.push((CacheValue::Team(team).get_entry(), true))
                     } else {
-                        values.push((
-                            CacheValueType::Team.get_empty_entry(key),
-                            true,
-                        ))
+                        values.push((CacheValueType::Team.get_empty_entry(key), true))
                     }
                 }
 
@@ -1130,38 +1064,24 @@ impl CachedEntry {
                     let id = key.to_string();
                     let slug = id.to_lowercase();
 
-                    if let Some(position) = orgs.iter().position(|x| {
-                        x.id == id || x.slug.to_lowercase() == slug
-                    }) {
+                    if let Some(position) = orgs
+                        .iter()
+                        .position(|x| x.id == id || x.slug.to_lowercase() == slug)
+                    {
                         visited_keys.insert(id);
                         visited_keys.insert(slug);
 
                         let org = orgs.remove(position);
 
                         for member in &org.members {
-                            values.push((
-                                CacheValue::User(member.user.clone())
-                                    .get_entry(),
-                                false,
-                            ));
+                            values.push((CacheValue::User(member.user.clone()).get_entry(), false));
                         }
 
-                        values.push((
-                            CacheValue::Team(org.members.clone()).get_entry(),
-                            false,
-                        ));
+                        values.push((CacheValue::Team(org.members.clone()).get_entry(), false));
 
-                        values.push((
-                            CacheValue::Organization(org).get_entry(),
-                            true,
-                        ));
-                    } else if !visited_keys.contains(&id)
-                        && !visited_keys.contains(&slug)
-                    {
-                        values.push((
-                            CacheValueType::Organization.get_empty_entry(id),
-                            true,
-                        ));
+                        values.push((CacheValue::Organization(org).get_entry(), true));
+                    } else if !visited_keys.contains(&id) && !visited_keys.contains(&slug) {
+                        values.push((CacheValueType::Organization.get_empty_entry(id), true));
                     }
                 }
 
@@ -1189,10 +1109,7 @@ impl CachedEntry {
                     if let Some(version) = versions.remove(&hash) {
                         let version_id = version.id.clone();
                         let project_id = version.project_id.clone();
-                        vals.push((
-                            CacheValue::Version(version).get_entry(),
-                            false,
-                        ));
+                        vals.push((CacheValue::Version(version).get_entry(), false));
 
                         vals.push((
                             CacheValue::File(CachedFile {
@@ -1210,8 +1127,7 @@ impl CachedEntry {
                                 alias: None,
                                 type_: CacheValueType::File,
                                 data: None,
-                                expires: Utc::now().timestamp()
-                                    + CacheValueType::File.expiry(),
+                                expires: Utc::now().timestamp() + CacheValueType::File.expiry(),
                             },
                             true,
                         ))
@@ -1235,18 +1151,9 @@ impl CachedEntry {
                     })
                     .collect::<Vec<_>>();
 
-                futures::future::try_join_all(fetch_urls.iter().map(
-                    |(_, url)| {
-                        fetch_json(
-                            Method::GET,
-                            url,
-                            None,
-                            None,
-                            fetch_semaphore,
-                            pool,
-                        )
-                    },
-                ))
+                futures::future::try_join_all(fetch_urls.iter().map(|(_, url)| {
+                    fetch_json(Method::GET, url, None, None, fetch_semaphore, pool)
+                }))
                 .await?
                 .into_iter()
                 .enumerate()
@@ -1322,8 +1229,7 @@ impl CachedEntry {
                     profiles_dir: &Path,
                     key: String,
                 ) -> crate::modrinth::Result<(CachedEntry, bool)> {
-                    let path =
-                        key.split_once('-').map(|x| x.1).unwrap_or_default();
+                    let path = key.split_once('-').map(|x| x.1).unwrap_or_default();
 
                     let full_path = profiles_dir.join(path);
 
@@ -1349,9 +1255,7 @@ impl CachedEntry {
                             path: path.to_string(),
                             size,
                             hash,
-                            project_type: ProjectType::get_from_parent_folder(
-                                &full_path,
-                            ),
+                            project_type: ProjectType::get_from_parent_folder(&full_path),
                         })
                         .get_entry(),
                         true,
@@ -1374,8 +1278,7 @@ impl CachedEntry {
                 let mut vals = Vec::new();
 
                 // TODO: switch to update individual once back-end route exists
-                let mut filtered_keys: Vec<((String, String), Vec<String>)> =
-                    Vec::new();
+                let mut filtered_keys: Vec<((String, String), Vec<String>)> = Vec::new();
                 keys.iter().for_each(|x| {
                     let string = x.key().to_string();
                     let key = string.splitn(3, '-').collect::<Vec<_>>();
@@ -1385,53 +1288,43 @@ impl CachedEntry {
                         let loaders_key = key[1];
                         let game_version = key[2];
 
-                        if let Some(values) =
-                            filtered_keys.iter_mut().find(|x| {
-                                x.0.0 == loaders_key && x.0.1 == game_version
-                            })
+                        if let Some(values) = filtered_keys
+                            .iter_mut()
+                            .find(|x| x.0.0 == loaders_key && x.0.1 == game_version)
                         {
                             values.1.push(hash.to_string());
                         } else {
                             filtered_keys.push((
-                                (
-                                    loaders_key.to_string(),
-                                    game_version.to_string(),
-                                ),
+                                (loaders_key.to_string(), game_version.to_string()),
                                 vec![hash.to_string()],
                             ))
                         }
                     } else {
-                        vals.push((
-                            CacheValueType::FileUpdate.get_empty_entry(string),
-                            true,
-                        ))
+                        vals.push((CacheValueType::FileUpdate.get_empty_entry(string), true))
                     }
                 });
 
-                let variations =
-                    futures::future::try_join_all(filtered_keys.iter().map(
-                        |((loaders_key, game_version), hashes)| {
-                            fetch_json::<HashMap<String, Vec<Version>>>(
-                                Method::POST,
-                                concat!(env!("MODRINTH_API_URL"), "version_files/update_many"),
-                                None,
-                                Some(serde_json::json!({
-                                    "algorithm": "sha1",
-                                    "hashes": hashes,
-                                    "loaders": loaders_key.split('+').collect::<Vec<_>>(),
-                                    "game_versions": [game_version]
-                                })),
-                                fetch_semaphore,
-                                pool,
-                            )
-                        },
-                    ))
-                    .await?;
+                let variations = futures::future::try_join_all(filtered_keys.iter().map(
+                    |((loaders_key, game_version), hashes)| {
+                        fetch_json::<HashMap<String, Vec<Version>>>(
+                            Method::POST,
+                            concat!(env!("MODRINTH_API_URL"), "version_files/update_many"),
+                            None,
+                            Some(serde_json::json!({
+                                "algorithm": "sha1",
+                                "hashes": hashes,
+                                "loaders": loaders_key.split('+').collect::<Vec<_>>(),
+                                "game_versions": [game_version]
+                            })),
+                            fetch_semaphore,
+                            pool,
+                        )
+                    },
+                ))
+                .await?;
 
-                for (index, mut variation) in variations.into_iter().enumerate()
-                {
-                    let ((loaders_key, game_version), hashes) =
-                        &filtered_keys[index];
+                for (index, mut variation) in variations.into_iter().enumerate() {
+                    let ((loaders_key, game_version), hashes) = &filtered_keys[index];
 
                     for hash in hashes {
                         let versions = variation.remove(hash);
@@ -1439,10 +1332,7 @@ impl CachedEntry {
                         if let Some(versions) = versions {
                             for version in versions {
                                 let version_id = version.id.clone();
-                                vals.push((
-                                    CacheValue::Version(version).get_entry(),
-                                    false,
-                                ));
+                                vals.push((CacheValue::Version(version).get_entry(), false));
 
                                 vals.push((
                                     CacheValue::FileUpdate(CachedFileUpdate {
@@ -1460,11 +1350,9 @@ impl CachedEntry {
                             }
                         } else {
                             vals.push((
-                                CacheValueType::FileUpdate.get_empty_entry(
-                                    format!(
-                                        "{hash}-{loaders_key}-{game_version}"
-                                    ),
-                                ),
+                                CacheValueType::FileUpdate.get_empty_entry(format!(
+                                    "{hash}-{loaders_key}-{game_version}"
+                                )),
                                 true,
                             ))
                         };
@@ -1479,27 +1367,14 @@ impl CachedEntry {
                     .map(|x| {
                         (
                             x.key().to_string(),
-                            format!(
-                                "{}search{}",
-                                env!("MODRINTH_API_URL"),
-                                x.key()
-                            ),
+                            format!("{}search{}", env!("MODRINTH_API_URL"), x.key()),
                         )
                     })
                     .collect::<Vec<_>>();
 
-                futures::future::try_join_all(fetch_urls.iter().map(
-                    |(_, url)| {
-                        fetch_json(
-                            Method::GET,
-                            url,
-                            None,
-                            None,
-                            fetch_semaphore,
-                            pool,
-                        )
-                    },
-                ))
+                futures::future::try_join_all(fetch_urls.iter().map(|(_, url)| {
+                    fetch_json(Method::GET, url, None, None, fetch_semaphore, pool)
+                }))
                 .await?
                 .into_iter()
                 .enumerate()
@@ -1521,27 +1396,14 @@ impl CachedEntry {
                     .map(|x| {
                         (
                             x.key().to_string(),
-                            format!(
-                                "{}search{}",
-                                env!("MODRINTH_API_URL_V3"),
-                                x.key()
-                            ),
+                            format!("{}search{}", env!("MODRINTH_API_URL_V3"), x.key()),
                         )
                     })
                     .collect::<Vec<_>>();
 
-                futures::future::try_join_all(fetch_urls.iter().map(
-                    |(_, url)| {
-                        fetch_json(
-                            Method::GET,
-                            url,
-                            None,
-                            None,
-                            fetch_semaphore,
-                            pool,
-                        )
-                    },
-                ))
+                futures::future::try_join_all(fetch_urls.iter().map(|(_, url)| {
+                    fetch_json(Method::GET, url, None, None, fetch_semaphore, pool)
+                }))
                 .await?
                 .into_iter()
                 .enumerate()
@@ -1580,15 +1442,9 @@ impl CachedEntry {
         }
 
         let value = match type_ {
-            CacheValueType::Project => {
-                CacheValue::Project(parse(data, id, "project")?)
-            }
-            CacheValueType::ProjectV3 => {
-                CacheValue::ProjectV3(parse(data, id, "project_v3")?)
-            }
-            CacheValueType::Version => {
-                CacheValue::Version(parse(data, id, "version")?)
-            }
+            CacheValueType::Project => CacheValue::Project(parse(data, id, "project")?),
+            CacheValueType::ProjectV3 => CacheValue::ProjectV3(parse(data, id, "project_v3")?),
+            CacheValueType::Version => CacheValue::Version(parse(data, id, "version")?),
             CacheValueType::User => CacheValue::User(parse(data, id, "user")?),
             CacheValueType::Team => CacheValue::Team(parse(data, id, "team")?),
             CacheValueType::Organization => {
@@ -1598,36 +1454,28 @@ impl CachedEntry {
             CacheValueType::LoaderManifest => {
                 CacheValue::LoaderManifest(parse(data, id, "loader_manifest")?)
             }
-            CacheValueType::MinecraftManifest => CacheValue::MinecraftManifest(
-                parse(data, id, "minecraft_manifest")?,
-            ),
-            CacheValueType::Categories => {
-                CacheValue::Categories(parse(data, id, "categories")?)
+            CacheValueType::MinecraftManifest => {
+                CacheValue::MinecraftManifest(parse(data, id, "minecraft_manifest")?)
             }
+            CacheValueType::Categories => CacheValue::Categories(parse(data, id, "categories")?),
             CacheValueType::ReportTypes => {
                 CacheValue::ReportTypes(parse(data, id, "report_types")?)
             }
-            CacheValueType::Loaders => {
-                CacheValue::Loaders(parse(data, id, "loaders")?)
-            }
+            CacheValueType::Loaders => CacheValue::Loaders(parse(data, id, "loaders")?),
             CacheValueType::GameVersions => {
                 CacheValue::GameVersions(parse(data, id, "game_versions")?)
             }
-            CacheValueType::DonationPlatforms => CacheValue::DonationPlatforms(
-                parse(data, id, "donation_platforms")?,
-            ),
-            CacheValueType::FileHash => {
-                CacheValue::FileHash(parse(data, id, "file_hash")?)
+            CacheValueType::DonationPlatforms => {
+                CacheValue::DonationPlatforms(parse(data, id, "donation_platforms")?)
             }
-            CacheValueType::FileUpdate => {
-                CacheValue::FileUpdate(parse(data, id, "file_update")?)
-            }
+            CacheValueType::FileHash => CacheValue::FileHash(parse(data, id, "file_hash")?),
+            CacheValueType::FileUpdate => CacheValue::FileUpdate(parse(data, id, "file_update")?),
             CacheValueType::SearchResults => {
                 CacheValue::SearchResults(parse(data, id, "search_results")?)
             }
-            CacheValueType::SearchResultsV3 => CacheValue::SearchResultsV3(
-                parse(data, id, "search_results_v3")?,
-            ),
+            CacheValueType::SearchResultsV3 => {
+                CacheValue::SearchResultsV3(parse(data, id, "search_results_v3")?)
+            }
         };
 
         Ok(value)

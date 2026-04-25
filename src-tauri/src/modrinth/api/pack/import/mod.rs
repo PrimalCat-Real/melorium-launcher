@@ -53,20 +53,18 @@ pub async fn get_importable_instances(
 ) -> crate::modrinth::Result<Vec<String>> {
     // Some launchers have a different folder structure for instances
     let instances_subfolder = match launcher_type {
-        ImportLauncherType::GDLauncher | ImportLauncherType::ATLauncher => {
-            "instances".to_string()
-        }
+        ImportLauncherType::GDLauncher | ImportLauncherType::ATLauncher => "instances".to_string(),
         ImportLauncherType::Curseforge => "Instances".to_string(),
         ImportLauncherType::MultiMC => {
             mmc::get_instances_subpath(base_path.clone().join("multimc.cfg"))
                 .await
                 .unwrap_or_else(|| "instances".to_string())
         }
-        ImportLauncherType::PrismLauncher => mmc::get_instances_subpath(
-            base_path.clone().join("prismlauncher.cfg"),
-        )
-        .await
-        .unwrap_or_else(|| "instances".to_string()),
+        ImportLauncherType::PrismLauncher => {
+            mmc::get_instances_subpath(base_path.clone().join("prismlauncher.cfg"))
+                .await
+                .unwrap_or_else(|| "instances".to_string())
+        }
         ImportLauncherType::Unknown => {
             return Err(crate::modrinth::ErrorKind::InputError(
                 "Launcher type Unknown".to_string(),
@@ -132,14 +130,14 @@ pub async fn import_instance(
         ImportLauncherType::GDLauncher => {
             gdlauncher::import_gdlauncher(
                 base_path.join("instances").join(instance_folder), // path to gdlauncher folder
-                profile_path, // path to profile
+                profile_path,                                      // path to profile
             )
             .await
         }
         ImportLauncherType::Curseforge => {
             curseforge::import_curseforge(
                 base_path.join("Instances").join(instance_folder), // path to curseforge folder
-                profile_path, // path to profile
+                profile_path,                                      // path to profile
             )
             .await
         }
@@ -167,20 +165,12 @@ pub async fn import_instance(
 
 /// Returns the default path for the given launcher type
 /// None if it can't be found or doesn't exist
-pub fn get_default_launcher_path(
-    r#type: ImportLauncherType,
-) -> Option<PathBuf> {
+pub fn get_default_launcher_path(r#type: ImportLauncherType) -> Option<PathBuf> {
     let path = match r#type {
         ImportLauncherType::MultiMC => None, // multimc data is *in* app dir
-        ImportLauncherType::PrismLauncher => {
-            Some(dirs::data_dir()?.join("PrismLauncher"))
-        }
-        ImportLauncherType::ATLauncher => {
-            Some(dirs::data_dir()?.join("ATLauncher"))
-        }
-        ImportLauncherType::GDLauncher => {
-            Some(dirs::data_dir()?.join("gdlauncher_next"))
-        }
+        ImportLauncherType::PrismLauncher => Some(dirs::data_dir()?.join("PrismLauncher")),
+        ImportLauncherType::ATLauncher => Some(dirs::data_dir()?.join("ATLauncher")),
+        ImportLauncherType::GDLauncher => Some(dirs::data_dir()?.join("gdlauncher_next")),
         ImportLauncherType::Curseforge => {
             Some(dirs::home_dir()?.join("curseforge").join("minecraft"))
         }
@@ -201,15 +191,9 @@ pub async fn is_valid_importable_instance(
         ImportLauncherType::MultiMC | ImportLauncherType::PrismLauncher => {
             mmc::is_valid_mmc(instance_path).await
         }
-        ImportLauncherType::ATLauncher => {
-            atlauncher::is_valid_atlauncher(instance_path).await
-        }
-        ImportLauncherType::GDLauncher => {
-            gdlauncher::is_valid_gdlauncher(instance_path).await
-        }
-        ImportLauncherType::Curseforge => {
-            curseforge::is_valid_curseforge(instance_path).await
-        }
+        ImportLauncherType::ATLauncher => atlauncher::is_valid_atlauncher(instance_path).await,
+        ImportLauncherType::GDLauncher => gdlauncher::is_valid_gdlauncher(instance_path).await,
+        ImportLauncherType::Curseforge => curseforge::is_valid_curseforge(instance_path).await,
         ImportLauncherType::Unknown => false,
     }
 }
@@ -217,9 +201,7 @@ pub async fn is_valid_importable_instance(
 /// Caches an image file in the filesystem into the cache directory, and returns the path to the cached file.
 
 #[tracing::instrument]
-pub async fn recache_icon(
-    icon_path: PathBuf,
-) -> crate::modrinth::Result<Option<PathBuf>> {
+pub async fn recache_icon(icon_path: PathBuf) -> crate::modrinth::Result<Option<PathBuf>> {
     let state = crate::modrinth::State::get().await?;
 
     let bytes = tokio::fs::read(&icon_path).await;
@@ -228,13 +210,8 @@ pub async fn recache_icon(
         let cache_dir = &state.directories.caches_dir();
         let semaphore = &state.io_semaphore;
         Ok(Some(
-            fetch::write_cached_icon(
-                &icon_path.to_string_lossy(),
-                cache_dir,
-                bytes,
-                semaphore,
-            )
-            .await?,
+            fetch::write_cached_icon(&icon_path.to_string_lossy(), cache_dir, bytes, semaphore)
+                .await?,
         ))
     } else {
         // could not find icon (for instance, prism default icon, etc)
@@ -249,8 +226,7 @@ pub async fn copy_dotminecraft(
     existing_loading_bar: Option<LoadingBarId>,
 ) -> crate::modrinth::Result<LoadingBarId> {
     // Get full path to profile
-    let profile_path =
-        crate::modrinth::api::profile::get_full_path(profile_path_id).await?;
+    let profile_path = crate::modrinth::api::profile::get_full_path(profile_path_id).await?;
 
     // Gets all subfiles recursively in src
     let subfiles = get_all_subfiles(&dotminecraft, false).await?;
@@ -269,13 +245,12 @@ pub async fn copy_dotminecraft(
 
     // Copy each file
     for src_child in subfiles {
-        let dst_child =
-            src_child.strip_prefix(&dotminecraft).map_err(|_| {
-                crate::modrinth::ErrorKind::InputError(format!(
-                    "Invalid file: {}",
-                    &src_child.display()
-                ))
-            })?;
+        let dst_child = src_child.strip_prefix(&dotminecraft).map_err(|_| {
+            crate::modrinth::ErrorKind::InputError(format!(
+                "Invalid file: {}",
+                &src_child.display()
+            ))
+        })?;
         let dst_child = profile_path.join(dst_child);
 
         // sleep for cpu for 1 millisecond
@@ -312,9 +287,7 @@ pub async fn get_all_subfiles(
     {
         has_files = true;
         let src_child = child.path();
-        files.append(
-            &mut get_all_subfiles(&src_child, include_empty_dirs).await?,
-        );
+        files.append(&mut get_all_subfiles(&src_child, include_empty_dirs).await?);
     }
 
     if !has_files && include_empty_dirs {

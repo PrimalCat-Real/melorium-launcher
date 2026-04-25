@@ -102,11 +102,7 @@ impl State {
 
             let _ = state
                 .friends_socket
-                .connect(
-                    &state.pool,
-                    &state.api_semaphore,
-                    &state.process_manager,
-                )
+                .connect(&state.pool, &state.api_semaphore, &state.process_manager)
                 .await;
             let _ = FriendsSocket::socket_loop().await;
         });
@@ -132,9 +128,7 @@ impl State {
     }
 
     #[tracing::instrument]
-    async fn initialize_state(
-        app_identifier: String,
-    ) -> crate::modrinth::Result<Arc<Self>> {
+    async fn initialize_state(app_identifier: String) -> crate::modrinth::Result<Arc<Self>> {
         tracing::info!("Connecting to app database");
         let pool = db::connect(&app_identifier).await?;
 
@@ -143,12 +137,9 @@ impl State {
         tracing::info!("Fetching app settings");
         let mut settings = Settings::get(&pool).await?;
 
-        let fetch_semaphore =
-            FetchSemaphore(Semaphore::new(settings.max_concurrent_downloads));
-        let io_semaphore =
-            IoSemaphore(Semaphore::new(settings.max_concurrent_writes));
-        let api_semaphore =
-            FetchSemaphore(Semaphore::new(settings.max_concurrent_downloads));
+        let fetch_semaphore = FetchSemaphore(Semaphore::new(settings.max_concurrent_downloads));
+        let io_semaphore = IoSemaphore(Semaphore::new(settings.max_concurrent_writes));
+        let api_semaphore = FetchSemaphore(Semaphore::new(settings.max_concurrent_downloads));
 
         tracing::info!("Initializing directories");
         DirectoryInfo::move_launcher_directory(
@@ -159,8 +150,7 @@ impl State {
         )
         .await?;
 
-        let directories =
-            DirectoryInfo::init(settings.custom_dir, &app_identifier).await?;
+        let directories = DirectoryInfo::init(settings.custom_dir, &app_identifier).await?;
 
         let discord_rpc = DiscordGuard::init()?;
 

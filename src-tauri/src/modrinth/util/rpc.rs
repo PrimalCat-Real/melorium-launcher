@@ -17,8 +17,7 @@ use uuid::Uuid;
 type HandlerFuture = Pin<Box<dyn Send + Future<Output = Result<Value>>>>;
 type HandlerMethod = Box<dyn Send + Sync + Fn(Vec<Value>) -> HandlerFuture>;
 type HandlerMap = HashMap<&'static str, HandlerMethod>;
-type WaitingResponsesMap =
-    Arc<Mutex<HashMap<Uuid, oneshot::Sender<Result<Value>>>>>;
+type WaitingResponsesMap = Arc<Mutex<HashMap<Uuid, oneshot::Sender<Result<Value>>>>>;
 
 pub struct RpcServerBuilder {
     handlers: HandlerMap,
@@ -33,11 +32,7 @@ impl RpcServerBuilder {
 
     // We'll use this function in the future. Please remove this #[allow] when we do.
     #[allow(dead_code)]
-    pub fn handler(
-        mut self,
-        function_name: &'static str,
-        handler: HandlerMethod,
-    ) -> Self {
+    pub fn handler(mut self, function_name: &'static str, handler: HandlerMethod) -> Self {
         self.handlers.insert(function_name, Box::new(handler));
         self
     }
@@ -84,10 +79,7 @@ impl RpcServer {
         self.address
     }
 
-    pub async fn call_method<R: DeserializeOwned>(
-        &self,
-        method: &str,
-    ) -> Result<R> {
+    pub async fn call_method<R: DeserializeOwned>(&self, method: &str) -> Result<R> {
         self.call_method_any(method, vec![]).await
     }
 
@@ -110,10 +102,7 @@ impl RpcServer {
         args: Vec<Value>,
     ) -> Result<R> {
         if self.message_sender.is_closed() {
-            return Err(ErrorKind::RpcError(
-                "RPC connection closed".to_string(),
-            )
-            .into());
+            return Err(ErrorKind::RpcError("RPC connection closed".to_string()).into());
         }
 
         let id = Uuid::new_v4();
@@ -129,10 +118,9 @@ impl RpcServer {
         };
         if self.message_sender.send(message).is_err() {
             self.waiting_responses.lock().unwrap().remove(&id);
-            return Err(ErrorKind::RpcError(
-                "RPC connection closed while sending".to_string(),
-            )
-            .into());
+            return Err(
+                ErrorKind::RpcError("RPC connection closed while sending".to_string()).into(),
+            );
         }
 
         tracing::debug!("Waiting on result for {id}");
@@ -197,10 +185,7 @@ impl RunningRpcServer {
         Ok(())
     }
 
-    async fn handle_message(
-        &self,
-        message: RpcMessage,
-    ) -> Result<Option<RpcMessage>> {
+    async fn handle_message(&self, message: RpcMessage) -> Result<Option<RpcMessage>> {
         if let RpcMessageBody::Call { method, args } = message.body {
             let response = match self.handlers.get(method.as_str()) {
                 Some(handler) => match handler(args).await {
@@ -217,14 +202,10 @@ impl RunningRpcServer {
                 id: message.id,
                 body: response,
             }))
-        } else if let Some(sender) =
-            self.waiting_responses.lock().unwrap().remove(&message.id)
-        {
+        } else if let Some(sender) = self.waiting_responses.lock().unwrap().remove(&message.id) {
             let _ = sender.send(match message.body {
                 RpcMessageBody::Respond { response } => Ok(response),
-                RpcMessageBody::Error { error } => {
-                    Err(ErrorKind::RpcError(error).into())
-                }
+                RpcMessageBody::Error { error } => Err(ErrorKind::RpcError(error).into()),
                 _ => unreachable!(),
             });
             Ok(None)

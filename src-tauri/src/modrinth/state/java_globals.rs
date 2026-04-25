@@ -86,8 +86,8 @@ impl JavaVersion {
             self.architecture,
             self.path,
         )
-            .execute(exec)
-            .await?;
+        .execute(exec)
+        .await?;
 
         Ok(())
     }

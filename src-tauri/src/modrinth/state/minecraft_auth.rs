@@ -99,14 +99,7 @@ pub async fn login_begin(
     let result = sha2::Sha256::digest(&verifier);
     let challenge = BASE64_URL_SAFE_NO_PAD.encode(result);
 
-    match sisu_authenticate(
-        &pair.token.token,
-        &challenge,
-        &pair.key,
-        current_date,
-    )
-    .await
-    {
+    match sisu_authenticate(&pair.token.token, &challenge, &pair.key, current_date).await {
         Ok((session_id, redirect_uri)) => {
             return Ok(MinecraftLoginFlow {
                 verifier,
@@ -125,8 +118,7 @@ pub async fn login_finish(
     flow: MinecraftLoginFlow,
     exec: impl sqlx::Executor<'_, Database = sqlx::Sqlite> + Copy,
 ) -> crate::modrinth::Result<Credentials> {
-    let (pair, _) =
-        DeviceTokenPair::refresh_and_get_device_token(Utc::now(), exec).await?;
+    let (pair, _) = DeviceTokenPair::refresh_and_get_device_token(Utc::now(), exec).await?;
 
     let oauth_token = oauth_token(code, &flow.verifier).await?;
     let sisu_authorize = sisu_authorize(
@@ -153,8 +145,7 @@ pub async fn login_finish(
         offline_profile: MinecraftProfile::default(),
         access_token: minecraft_token.access_token,
         refresh_token: oauth_token.value.refresh_token,
-        expires: oauth_token.date
-            + Duration::seconds(oauth_token.value.expires_in as i64),
+        expires: oauth_token.date + Duration::seconds(oauth_token.value.expires_in as i64),
         active: true,
     };
 
@@ -233,11 +224,7 @@ impl Credentials {
 
         let oauth_token = oauth_refresh(&self.refresh_token).await?;
         let (pair, current_date) =
-            DeviceTokenPair::refresh_and_get_device_token(
-                oauth_token.date,
-                exec,
-            )
-            .await?;
+            DeviceTokenPair::refresh_and_get_device_token(oauth_token.date, exec).await?;
 
         let sisu_authorize = sisu_authorize(
             None,
@@ -260,8 +247,7 @@ impl Credentials {
 
         self.access_token = minecraft_token.access_token;
         self.refresh_token = oauth_token.value.refresh_token;
-        self.expires = oauth_token.date
-            + Duration::seconds(oauth_token.value.expires_in as i64);
+        self.expires = oauth_token.date + Duration::seconds(oauth_token.value.expires_in as i64);
 
         self.upsert(exec).await?;
 
@@ -276,9 +262,7 @@ impl Credentials {
             match profile_cache.entry(self.offline_profile.id) {
                 Entry::Occupied(entry) => {
                     match entry.get() {
-                        ProfileCacheEntry::Hit(profile)
-                            if profile.is_fresh() =>
-                        {
+                        ProfileCacheEntry::Hit(profile) if profile.is_fresh() => {
                             return Some(Arc::clone(profile));
                         }
                         ProfileCacheEntry::Hit(_) => {
@@ -293,8 +277,7 @@ impl Credentials {
                             likely_expired_token,
                             last_attempt,
                         } if &self.access_token != likely_expired_token
-                            || Instant::now()
-                                .saturating_duration_since(*last_attempt)
+                            || Instant::now().saturating_duration_since(*last_attempt)
                                 > std::time::Duration::from_secs(60) =>
                         {
                             entry.remove();
@@ -309,8 +292,7 @@ impl Credentials {
                     match minecraft_profile(&self.access_token).await {
                         Ok(profile) => {
                             let profile = Arc::new(profile);
-                            let cache_entry =
-                                ProfileCacheEntry::Hit(Arc::clone(&profile));
+                            let cache_entry = ProfileCacheEntry::Hit(Arc::clone(&profile));
 
                             // When fetching a profile for the first time, the player UUID may
                             // be unknown (i.e., set to a dummy value), so make sure we don't
@@ -363,9 +345,7 @@ impl Credentials {
     /// falls back to the known offline profile data.
     ///
     /// See also the [`online_profile`](Self::online_profile) method.
-    pub async fn maybe_online_profile(
-        &self,
-    ) -> MaybeOnlineMinecraftProfile<'_> {
+    pub async fn maybe_online_profile(&self) -> MaybeOnlineMinecraftProfile<'_> {
         let online_profile = self.online_profile().await;
         online_profile.map_or_else(
             || MaybeOnlineMinecraftProfile::Offline(&self.offline_profile),
@@ -388,10 +368,7 @@ impl Credentials {
                 Ok(_) => Ok(Some(creds)),
                 Err(err) => {
                     if let ErrorKind::MinecraftAuthenticationError(
-                        MinecraftAuthenticationError::Request {
-                            ref source,
-                            ..
-                        },
+                        MinecraftAuthenticationError::Request { ref source, .. },
                     ) = *err.raw
                         && (source.is_connect() || source.is_timeout())
                     {
@@ -548,31 +525,20 @@ impl Credentials {
 }
 
 impl Serialize for Credentials {
-    fn serialize<S: Serializer>(
-        &self,
-        serializer: S,
-    ) -> Result<S::Ok, S::Error> {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         // Opportunistically hydrate the profile with its online data if possible for frontend
         // consumption, transparently handling all the possible Tokio runtime states the current
         // thread may be in the most efficient way
         let profile = match Handle::try_current().ok() {
-            Some(runtime)
-                if runtime.runtime_flavor() == RuntimeFlavor::CurrentThread =>
-            {
+            Some(runtime) if runtime.runtime_flavor() == RuntimeFlavor::CurrentThread => {
                 runtime.block_on(self.maybe_online_profile())
             }
-            Some(runtime) => task::block_in_place(|| {
-                runtime.block_on(self.maybe_online_profile())
-            }),
+            Some(runtime) => task::block_in_place(|| runtime.block_on(self.maybe_online_profile())),
             None => tokio::runtime::Builder::new_current_thread()
                 .enable_all()
                 .build()
                 .map_or_else(
-                    |_| {
-                        MaybeOnlineMinecraftProfile::Offline(
-                            &self.offline_profile,
-                        )
-                    },
+                    |_| MaybeOnlineMinecraftProfile::Offline(&self.offline_profile),
                     |runtime| runtime.block_on(self.maybe_online_profile()),
                 ),
         };
@@ -654,8 +620,7 @@ impl DeviceTokenPair {
                         .single()
                         .unwrap_or_else(Utc::now),
                     token: x.token,
-                    display_claims: serde_json::from_value(x.display_claims)
-                        .unwrap_or_default(),
+                    display_claims: serde_json::from_value(x.display_claims).unwrap_or_default(),
                 },
                 key: DeviceTokenKey {
                     id: uuid,
@@ -785,8 +750,7 @@ async fn sisu_authenticate(
     challenge: &str,
     key: &DeviceTokenKey,
     current_date: DateTime<Utc>,
-) -> Result<(String, RequestWithDate<RedirectUri>), MinecraftAuthenticationError>
-{
+) -> Result<(String, RequestWithDate<RedirectUri>), MinecraftAuthenticationError> {
     let res = send_signed_request::<RedirectUri>(
         None,
         "https://sisu.xboxlive.com/authenticate",
@@ -869,12 +833,13 @@ async fn oauth_token(
 
     let status = res.status();
     let current_date = get_date_header(res.headers());
-    let text = res.text().await.map_err(|source| {
-        MinecraftAuthenticationError::Request {
+    let text = res
+        .text()
+        .await
+        .map_err(|source| MinecraftAuthenticationError::Request {
             source,
             step: MinecraftAuthStep::GetOAuthToken,
-        }
-    })?;
+        })?;
 
     let body = serde_json::from_str(&text).map_err(|source| {
         MinecraftAuthenticationError::DeserializeResponse {
@@ -917,12 +882,13 @@ async fn oauth_refresh(
 
     let status = res.status();
     let current_date = get_date_header(res.headers());
-    let text = res.text().await.map_err(|source| {
-        MinecraftAuthenticationError::Request {
+    let text = res
+        .text()
+        .await
+        .map_err(|source| MinecraftAuthenticationError::Request {
             source,
             step: MinecraftAuthStep::RefreshOAuthToken,
-        }
-    })?;
+        })?;
 
     let body = serde_json::from_str(&text).map_err(|source| {
         MinecraftAuthenticationError::DeserializeResponse {
@@ -1064,12 +1030,13 @@ async fn minecraft_token(
     })?;
 
     let status = res.status();
-    let text = res.text().await.map_err(|source| {
-        MinecraftAuthenticationError::Request {
+    let text = res
+        .text()
+        .await
+        .map_err(|source| MinecraftAuthenticationError::Request {
             source,
             step: MinecraftAuthStep::MinecraftToken,
-        }
-    })?;
+        })?;
 
     serde_json::from_str(&text).map_err(|source| {
         MinecraftAuthenticationError::DeserializeResponse {
@@ -1081,9 +1048,7 @@ async fn minecraft_token(
     })
 }
 
-#[derive(
-    sqlx::Type, Deserialize, Serialize, Debug, Copy, Clone, PartialEq, Eq,
-)]
+#[derive(sqlx::Type, Deserialize, Serialize, Debug, Copy, Clone, PartialEq, Eq)]
 #[serde(rename_all = "UPPERCASE")]
 #[sqlx(rename_all = "UPPERCASE")]
 pub enum MinecraftSkinVariant {
@@ -1164,9 +1129,7 @@ impl MinecraftSkin {
         self.texture_key.as_ref().cloned().unwrap_or_else(|| {
             self.url
                 .path_segments()
-                .and_then(|mut path_segments| {
-                    path_segments.next_back().map(String::from)
-                })
+                .and_then(|mut path_segments| path_segments.next_back().map(String::from))
                 .unwrap_or_else(|| self.id.as_simple().to_string())
                 .into()
         })
@@ -1178,8 +1141,7 @@ fn normalize_skin_alias_case<'de, D: Deserializer<'de>>(
 ) -> Result<Option<String>, D::Error> {
     // Skin aliases have been spotted to be returned in all caps, so make sure
     // they are normalized to a prettier title case
-    Ok(<Option<Cow<'_, str>>>::deserialize(deserializer)?
-        .map(|alias| alias.to_title_case()))
+    Ok(<Option<Cow<'_, str>>>::deserialize(deserializer)?.map(|alias| alias.to_title_case()))
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -1236,20 +1198,16 @@ impl MinecraftProfile {
         Ok(self
             .skins
             .iter()
-            .find(|skin| {
-                skin.state == MinecraftCharacterExpressionState::Active
-            })
+            .find(|skin| skin.state == MinecraftCharacterExpressionState::Active)
             // There should always be one active skin, even when the player uses their default skin
-            .ok_or_else(|| {
-                ErrorKind::OtherError("No active skin found".into())
-            })?)
+            .ok_or_else(|| ErrorKind::OtherError("No active skin found".into()))?)
     }
 
     /// Returns the currently selected cape for this profile.
     pub fn current_cape(&self) -> Option<&MinecraftCape> {
-        self.capes.iter().find(|cape| {
-            cape.state == MinecraftCharacterExpressionState::Active
-        })
+        self.capes
+            .iter()
+            .find(|cape| cape.state == MinecraftCharacterExpressionState::Active)
     }
 }
 
@@ -1272,9 +1230,7 @@ impl Deref for MaybeOnlineMinecraftProfile<'_> {
 }
 
 #[tracing::instrument(skip(token))]
-async fn minecraft_profile(
-    token: &str,
-) -> Result<MinecraftProfile, MinecraftAuthenticationError> {
+async fn minecraft_profile(token: &str) -> Result<MinecraftProfile, MinecraftAuthenticationError> {
     let res = auth_retry(|| {
         REQWEST_CLIENT
             .get("https://api.minecraftservices.com/minecraft/profile")
@@ -1292,22 +1248,22 @@ async fn minecraft_profile(
     })?;
 
     let status = res.status();
-    let text = res.text().await.map_err(|source| {
-        MinecraftAuthenticationError::Request {
+    let text = res
+        .text()
+        .await
+        .map_err(|source| MinecraftAuthenticationError::Request {
             source,
             step: MinecraftAuthStep::MinecraftProfile,
+        })?;
+
+    let mut profile = serde_json::from_str::<MinecraftProfile>(&text).map_err(|source| {
+        MinecraftAuthenticationError::DeserializeResponse {
+            source,
+            raw: text,
+            step: MinecraftAuthStep::MinecraftProfile,
+            status_code: status,
         }
     })?;
-
-    let mut profile =
-        serde_json::from_str::<MinecraftProfile>(&text).map_err(|source| {
-            MinecraftAuthenticationError::DeserializeResponse {
-                source,
-                raw: text,
-                step: MinecraftAuthStep::MinecraftProfile,
-                status_code: status,
-            }
-        })?;
     profile.fetch_time = Some(Instant::now());
 
     tracing::debug!(
@@ -1328,20 +1284,28 @@ async fn minecraft_entitlements(
 ) -> Result<MinecraftEntitlements, MinecraftAuthenticationError> {
     let res = auth_retry(|| {
         REQWEST_CLIENT
-            .get(format!("https://api.minecraftservices.com/entitlements/license?requestId={}", Uuid::new_v4()))
+            .get(format!(
+                "https://api.minecraftservices.com/entitlements/license?requestId={}",
+                Uuid::new_v4()
+            ))
             .header("Accept", "application/json")
             .bearer_auth(token)
             .send()
     })
-    .await.map_err(|source| MinecraftAuthenticationError::Request { source, step: MinecraftAuthStep::MinecraftEntitlements })?;
+    .await
+    .map_err(|source| MinecraftAuthenticationError::Request {
+        source,
+        step: MinecraftAuthStep::MinecraftEntitlements,
+    })?;
 
     let status = res.status();
-    let text = res.text().await.map_err(|source| {
-        MinecraftAuthenticationError::Request {
+    let text = res
+        .text()
+        .await
+        .map_err(|source| MinecraftAuthenticationError::Request {
             source,
             step: MinecraftAuthStep::MinecraftEntitlements,
-        }
-    })?;
+        })?;
 
     serde_json::from_str(&text).map_err(|source| {
         MinecraftAuthenticationError::DeserializeResponse {
@@ -1355,15 +1319,12 @@ async fn minecraft_entitlements(
 
 // auth utils
 #[tracing::instrument(skip(reqwest_request))]
-async fn auth_retry<F>(
-    reqwest_request: impl Fn() -> F,
-) -> Result<reqwest::Response, reqwest::Error>
+async fn auth_retry<F>(reqwest_request: impl Fn() -> F) -> Result<reqwest::Response, reqwest::Error>
 where
     F: Future<Output = Result<Response, reqwest::Error>>,
 {
     const RETRY_COUNT: usize = 5; // Does command 9 times
-    const RETRY_WAIT: std::time::Duration =
-        std::time::Duration::from_millis(250);
+    const RETRY_WAIT: std::time::Duration = std::time::Duration::from_millis(250);
 
     let mut resp = reqwest_request().await;
     for i in 0..RETRY_COUNT {
@@ -1374,9 +1335,7 @@ where
             Err(err) => {
                 if err.is_connect() || err.is_timeout() {
                     if i < RETRY_COUNT - 1 {
-                        tracing::debug!(
-                            "Request failed with connect error, retrying...",
-                        );
+                        tracing::debug!("Request failed with connect error, retrying...",);
                         tokio::time::sleep(RETRY_WAIT).await;
                         resp = reqwest_request().await;
                     } else {
@@ -1410,14 +1369,14 @@ fn generate_key() -> Result<DeviceTokenKey, MinecraftAuthenticationError> {
         id: uuid,
         key: signing_key,
         x: BASE64_URL_SAFE_NO_PAD.encode(
-            encoded_point.x().ok_or_else(|| {
-                MinecraftAuthenticationError::ReadingPublicKey
-            })?,
+            encoded_point
+                .x()
+                .ok_or_else(|| MinecraftAuthenticationError::ReadingPublicKey)?,
         ),
         y: BASE64_URL_SAFE_NO_PAD.encode(
-            encoded_point.y().ok_or_else(|| {
-                MinecraftAuthenticationError::ReadingPublicKey
-            })?,
+            encoded_point
+                .y()
+                .ok_or_else(|| MinecraftAuthenticationError::ReadingPublicKey)?,
         ),
     })
 }
@@ -1440,11 +1399,9 @@ async fn send_signed_request<T: DeserializeOwned>(
 ) -> Result<SignedRequestResponse<T>, MinecraftAuthenticationError> {
     let auth = authorization.map_or(Vec::new(), |v| v.as_bytes().to_vec());
 
-    let body = serde_json::to_vec(&raw_body).map_err(|source| {
-        MinecraftAuthenticationError::SerializeBody { source, step }
-    })?;
-    let time: u128 =
-        { ((current_date.timestamp() as u128) + 11644473600) * 10000000 };
+    let body = serde_json::to_vec(&raw_body)
+        .map_err(|source| MinecraftAuthenticationError::SerializeBody { source, step })?;
+    let time: u128 = { ((current_date.timestamp() as u128) + 11644473600) * 10000000 };
 
     let mut buffer = Vec::new();
     buffer.extend_from_slice(&1_u32.to_be_bytes()[..]);
@@ -1495,9 +1452,10 @@ async fn send_signed_request<T: DeserializeOwned>(
 
     let current_date = get_date_header(&headers);
 
-    let body = res.text().await.map_err(|source| {
-        MinecraftAuthenticationError::Request { source, step }
-    })?;
+    let body = res
+        .text()
+        .await
+        .map_err(|source| MinecraftAuthenticationError::Request { source, step })?;
 
     let body = serde_json::from_str(&body).map_err(|source| {
         MinecraftAuthenticationError::DeserializeResponse {

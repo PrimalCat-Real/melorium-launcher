@@ -104,9 +104,8 @@ mod modern {
             + size_of::<u16>()
             + varint::get_byte_size(NEXT_STATE);
 
-        let mut packet_buffer = Vec::with_capacity(
-            varint::get_byte_size(packet_size as i32) + packet_size,
-        );
+        let mut packet_buffer =
+            Vec::with_capacity(varint::get_byte_size(packet_size as i32) + packet_size);
 
         varint::write(&mut packet_buffer, packet_size as i32);
         varint::write(&mut packet_buffer, PACKET_ID);
@@ -122,27 +121,21 @@ mod modern {
         Ok(())
     }
 
-    async fn status_body(
-        stream: &mut TcpStream,
-    ) -> crate::modrinth::Result<ServerStatus> {
+    async fn status_body(stream: &mut TcpStream) -> crate::modrinth::Result<ServerStatus> {
         stream.write_all(&[0x01, 0x00]).await?;
         stream.flush().await?;
 
         let packet_length = varint::read(stream).await?;
         if packet_length < 0 {
-            return Err(ErrorKind::InputError(
-                "Invalid status response packet length".to_string(),
-            )
-            .into());
+            return Err(
+                ErrorKind::InputError("Invalid status response packet length".to_string()).into(),
+            );
         }
 
         let mut packet_stream = stream.take(packet_length as u64);
         let packet_id = varint::read(&mut packet_stream).await?;
         if packet_id != 0x00 {
-            return Err(ErrorKind::InputError(
-                "Unexpected status response".to_string(),
-            )
-            .into());
+            return Err(ErrorKind::InputError("Unexpected status response".to_string()).into());
         }
         let response_length = varint::read(&mut packet_stream).await?;
         let mut json_response = vec![0_u8; response_length as usize];
@@ -167,10 +160,7 @@ mod modern {
         stream.read_exact(&mut response_prefix).await?;
         let response_magic = stream.read_i64().await?;
         if response_prefix != [0x09, 0x01] || response_magic != ping_magic {
-            return Err(ErrorKind::InputError(
-                "Unexpected ping response".to_string(),
-            )
-            .into());
+            return Err(ErrorKind::InputError("Unexpected ping response".to_string()).into());
         }
 
         Ok(start_time.elapsed().as_millis() as i64)
@@ -205,22 +195,16 @@ mod modern {
             out.push(value as u8);
         }
 
-        pub async fn read<R: AsyncRead + Unpin>(
-            reader: &mut R,
-        ) -> io::Result<i32> {
+        pub async fn read<R: AsyncRead + Unpin>(reader: &mut R) -> io::Result<i32> {
             let mut result = 0;
             let mut shift = 0;
 
             loop {
                 let b = reader.read_u8().await?;
-                result |=
-                    (b as u32 & DATA_BITS_MASK) << (shift * DATA_BITS_PER_BYTE);
+                result |= (b as u32 & DATA_BITS_MASK) << (shift * DATA_BITS_PER_BYTE);
                 shift += 1;
                 if shift > MAX_VARINT_SIZE {
-                    return Err(io::Error::new(
-                        io::ErrorKind::InvalidData,
-                        "VarInt too big",
-                    ));
+                    return Err(io::Error::new(io::ErrorKind::InvalidData, "VarInt too big"));
                 }
                 if b & CONT_BIT_MASK_U8 == 0 {
                     return Ok(result as i32);
@@ -296,10 +280,7 @@ mod legacy {
 
         Ok(ServerStatus {
             version: (!ancient_server).then(|| ServerVersion {
-                protocol: parts
-                    .next()
-                    .and_then(|x| x.parse().ok())
-                    .unwrap_or(0),
+                protocol: parts.next().and_then(|x| x.parse().ok()).unwrap_or(0),
                 name: parts.next().unwrap_or("").to_owned(),
                 legacy: true,
             }),

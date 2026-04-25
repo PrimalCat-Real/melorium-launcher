@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/modules/shadcn/lib/utils";
+import Titlebar from "@/components/titlebar/Titlebar";
 import SideBar from "@/components/sidebar/SideBar";
+import Providers from "@/shared/providers/Providers";
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
@@ -29,10 +31,17 @@ export default function RootLayout({
   return (
     <html lang="en" className={cn("font-sans", inter.variable)}>
       <body
-        className={cn(geistSans.variable, geistMono.variable, 'antialiased flex gap-4 bg-launcher-main h-screen p-2')}
+        className={cn(geistSans.variable, geistMono.variable, 'antialiased flex flex-col bg-launcher h-screen border muted-border')}
       >
-        <SideBar></SideBar>
-        {children}
+        <Providers>
+          <Titlebar></Titlebar>
+          <main className="flex h-full w-full">
+            <SideBar></SideBar>
+            {children}
+          </main>
+        </Providers>
+
+
       </body>
     </html>
   );

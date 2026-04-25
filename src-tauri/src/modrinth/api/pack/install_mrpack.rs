@@ -86,20 +86,22 @@ pub async fn install_zipped_mrpack_files(
     let reader: Cursor<&bytes::Bytes> = Cursor::new(&file);
 
     // Create zip reader around file
-    let mut zip_reader =
-        ZipFileReader::with_tokio(reader).await.map_err(|_| {
-            crate::modrinth::Error::from(crate::modrinth::ErrorKind::InputError(
-                "Failed to read input modpack zip".to_string(),
-            ))
-        })?;
+    let mut zip_reader = ZipFileReader::with_tokio(reader).await.map_err(|_| {
+        crate::modrinth::Error::from(crate::modrinth::ErrorKind::InputError(
+            "Failed to read input modpack zip".to_string(),
+        ))
+    })?;
 
     // Extract index of modrinth.index.json
-    let Some(manifest_idx) = zip_reader.file().entries().iter().position(|f| {
-        matches!(f.filename().as_str(), Ok("modrinth.index.json"))
-    }) else {
-        return Err(crate::modrinth::Error::from(crate::modrinth::ErrorKind::InputError(
-            "No pack manifest found in mrpack".to_string(),
-        )));
+    let Some(manifest_idx) = zip_reader
+        .file()
+        .entries()
+        .iter()
+        .position(|f| matches!(f.filename().as_str(), Ok("modrinth.index.json")))
+    else {
+        return Err(crate::modrinth::Error::from(
+            crate::modrinth::ErrorKind::InputError("No pack manifest found in mrpack".to_string()),
+        ));
     };
 
     let mut manifest = String::new();
@@ -142,8 +144,7 @@ pub async fn install_zipped_mrpack_files(
 
     let num_files = pack.files.len();
     loading_try_for_each_concurrent(
-        futures::stream::iter(pack.files.into_iter())
-            .map(Ok::<PackFile, crate::modrinth::Error>),
+        futures::stream::iter(pack.files.into_iter()).map(Ok::<PackFile, crate::modrinth::Error>),
         None,
         Some(&loading_bar),
         70.0,
@@ -204,8 +205,7 @@ pub async fn install_zipped_mrpack_files(
         .enumerate()
         .filter_map(|(index, file)| {
             let filename = file.filename().as_str().unwrap_or_default();
-            ((filename.starts_with("overrides/")
-                || filename.starts_with("client-overrides/"))
+            ((filename.starts_with("overrides/") || filename.starts_with("client-overrides/"))
                 && !filename.ends_with('/'))
             .then(|| (index, file.clone()))
         })
@@ -214,9 +214,7 @@ pub async fn install_zipped_mrpack_files(
 
     for (i, (index, file)) in override_file_entries.into_iter().enumerate() {
         let relative_override_file_path =
-            SafeRelativeUtf8UnixPathBuf::try_from(
-                file.filename().as_str().unwrap().to_string(),
-            )?;
+            SafeRelativeUtf8UnixPathBuf::try_from(file.filename().as_str().unwrap().to_string())?;
         let relative_override_file_path = relative_override_file_path
             .strip_prefix("overrides")
             .or_else(|_| relative_override_file_path.strip_prefix("client-overrides"))
@@ -237,9 +235,7 @@ pub async fn install_zipped_mrpack_files(
             &profile_path,
             relative_override_file_path.as_str(),
             None,
-            ProjectType::get_from_parent_folder(
-                relative_override_file_path.as_str(),
-            ),
+            ProjectType::get_from_parent_folder(relative_override_file_path.as_str()),
             &state.pool,
         )
         .await?;
@@ -273,12 +269,8 @@ pub async fn install_zipped_mrpack_files(
     }
 
     if let Some(profile_val) = profile::get(&profile_path).await? {
-        crate::modrinth::launcher::install_minecraft(
-            &profile_val,
-            Some(loading_bar),
-            false,
-        )
-        .await?;
+        crate::modrinth::launcher::install_minecraft(&profile_val, Some(loading_bar), false)
+            .await?;
     }
 
     Ok::<String, crate::modrinth::Error>(profile_path.clone())
@@ -293,20 +285,22 @@ pub async fn remove_all_related_files(
     let reader: Cursor<&bytes::Bytes> = Cursor::new(&mrpack_file);
 
     // Create zip reader around file
-    let mut zip_reader =
-        ZipFileReader::with_tokio(reader).await.map_err(|_| {
-            crate::modrinth::Error::from(crate::modrinth::ErrorKind::InputError(
-                "Failed to read input modpack zip".to_string(),
-            ))
-        })?;
+    let mut zip_reader = ZipFileReader::with_tokio(reader).await.map_err(|_| {
+        crate::modrinth::Error::from(crate::modrinth::ErrorKind::InputError(
+            "Failed to read input modpack zip".to_string(),
+        ))
+    })?;
 
     // Extract index of modrinth.index.json
-    let Some(manifest_idx) = zip_reader.file().entries().iter().position(|f| {
-        matches!(f.filename().as_str(), Ok("modrinth.index.json"))
-    }) else {
-        return Err(crate::modrinth::Error::from(crate::modrinth::ErrorKind::InputError(
-            "No pack manifest found in mrpack".to_string(),
-        )));
+    let Some(manifest_idx) = zip_reader
+        .file()
+        .entries()
+        .iter()
+        .position(|f| matches!(f.filename().as_str(), Ok("modrinth.index.json")))
+    else {
+        return Err(crate::modrinth::Error::from(
+            crate::modrinth::ErrorKind::InputError("No pack manifest found in mrpack".to_string()),
+        ));
     };
 
     let mut manifest = String::new();
@@ -381,8 +375,7 @@ pub async fn remove_all_related_files(
     // Iterate over all Modrinth project file paths in the json, and remove them
     // (There should be few, but this removes any files the .mrpack intended as Modrinth projects but were unrecognized)
     for file in pack.files {
-        match io::remove_file(profile_full_path.join(file.path.as_str())).await
-        {
+        match io::remove_file(profile_full_path.join(file.path.as_str())).await {
             Ok(_) => (),
             Err(err) if err.kind() == ErrorKind::NotFound => (),
             Err(err) => return Err(err.into()),
@@ -390,19 +383,15 @@ pub async fn remove_all_related_files(
     }
 
     // Iterate over each 'overrides' file and remove it
-    let override_file_entries =
-        zip_reader.file().entries().iter().filter(|file| {
-            let filename = file.filename().as_str().unwrap_or_default();
-            (filename.starts_with("overrides/")
-                || filename.starts_with("client-overrides/"))
-                && !filename.ends_with('/')
-        });
+    let override_file_entries = zip_reader.file().entries().iter().filter(|file| {
+        let filename = file.filename().as_str().unwrap_or_default();
+        (filename.starts_with("overrides/") || filename.starts_with("client-overrides/"))
+            && !filename.ends_with('/')
+    });
 
     for file in override_file_entries {
         let relative_override_file_path =
-            SafeRelativeUtf8UnixPathBuf::try_from(
-                file.filename().as_str().unwrap().to_string(),
-            )?;
+            SafeRelativeUtf8UnixPathBuf::try_from(file.filename().as_str().unwrap().to_string())?;
         let relative_override_file_path = relative_override_file_path
             .strip_prefix("overrides")
             .or_else(|_| relative_override_file_path.strip_prefix("client-overrides"))

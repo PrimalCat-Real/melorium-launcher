@@ -6,9 +6,7 @@ use crate::modrinth::state::tunnel::InternalTunnelSocket;
 use crate::modrinth::state::{ProcessManager, Profile, TunnelSocket};
 use crate::modrinth::util::fetch::{FetchSemaphore, fetch_advanced, fetch_json};
 use ariadne::ids::UserId;
-use ariadne::networking::message::{
-    ClientToServerMessage, ServerToClientMessage,
-};
+use ariadne::networking::message::{ClientToServerMessage, ServerToClientMessage};
 use ariadne::users::UserStatus;
 use async_tungstenite::WebSocketSender;
 use async_tungstenite::tokio::{ConnectStream, connect_async};
@@ -31,8 +29,7 @@ use tokio::net::tcp::OwnedReadHalf;
 use tokio::sync::{Mutex, RwLock};
 use uuid::Uuid;
 
-pub(super) type WriteSocket =
-    Arc<RwLock<Option<WebSocketSender<ConnectStream>>>>;
+pub(super) type WriteSocket = Arc<RwLock<Option<WebSocketSender<ConnectStream>>>>;
 pub(super) type TunnelSockets = Arc<DashMap<Uuid, Arc<InternalTunnelSocket>>>;
 
 pub struct FriendsSocket {
@@ -71,8 +68,7 @@ impl FriendsSocket {
         semaphore: &FetchSemaphore,
         process_manager: &ProcessManager,
     ) -> crate::modrinth::Result<()> {
-        let credentials =
-            ModrinthCredentials::get_and_refresh(exec, semaphore).await?;
+        let credentials = ModrinthCredentials::get_and_refresh(exec, semaphore).await?;
 
         if let Some(credentials) = credentials {
             let mut request = format!(
@@ -100,12 +96,10 @@ impl FriendsSocket {
                     }
 
                     if let Some(process) = process_manager.get_all().first() {
-                        let profile =
-                            Profile::get(&process.profile_path, exec).await?;
+                        let profile = Profile::get(&process.profile_path, exec).await?;
 
                         if let Some(profile) = profile {
-                            let _ =
-                                self.update_status(Some(profile.name)).await;
+                            let _ = self.update_status(Some(profile.name)).await;
                         }
                     }
 
@@ -120,37 +114,28 @@ impl FriendsSocket {
                                 Ok(msg) => {
                                     let server_message = match msg {
                                         Message::Text(text) => {
-                                            ServerToClientMessage::deserialize(
-                                                Either::Left(&text),
-                                            )
-                                            .ok()
+                                            ServerToClientMessage::deserialize(Either::Left(&text))
+                                                .ok()
                                         }
                                         Message::Binary(bytes) => {
-                                            ServerToClientMessage::deserialize(
-                                                Either::Right(&bytes),
-                                            )
+                                            ServerToClientMessage::deserialize(Either::Right(
+                                                &bytes,
+                                            ))
                                             .ok()
                                         }
                                         Message::Ping(bytes) => {
-                                            if let Some(write) = write_handle
-                                                .write()
-                                                .await
-                                                .as_mut()
+                                            if let Some(write) = write_handle.write().await.as_mut()
                                             {
-                                                let _ = write
-                                                    .send(Message::Pong(bytes))
-                                                    .await;
+                                                let _ = write.send(Message::Pong(bytes)).await;
                                             }
 
                                             continue;
                                         }
-                                        Message::Pong(_)
-                                        | Message::Frame(_) => continue,
+                                        Message::Pong(_) | Message::Frame(_) => continue,
                                         Message::Close(_) => break,
                                     };
 
-                                    if let Some(server_message) = server_message
-                                    {
+                                    if let Some(server_message) = server_message {
                                         match server_message {
                                             ServerToClientMessage::StatusUpdate { status } => {
                                                 statuses.insert(status.user_id, status.clone());
@@ -212,9 +197,7 @@ impl FriendsSocket {
                     });
                 }
                 Err(e) => {
-                    tracing::error!(
-                        "Error connecting to friends socket: {e:?}"
-                    );
+                    tracing::error!("Error connecting to friends socket: {e:?}");
 
                     return Err(crate::modrinth::Error::from(e));
                 }
@@ -243,15 +226,10 @@ impl FriendsSocket {
                     last_ping = Utc::now();
                     let _ = state
                         .friends_socket
-                        .connect(
-                            &state.pool,
-                            &state.api_semaphore,
-                            &state.process_manager,
-                        )
+                        .connect(&state.pool, &state.api_semaphore, &state.process_manager)
                         .await;
                 } else if connected
-                    && Utc::now().signed_duration_since(last_ping)
-                        > chrono::Duration::seconds(10)
+                    && Utc::now().signed_duration_since(last_ping) > chrono::Duration::seconds(10)
                 {
                     last_ping = Utc::now();
                     let mut write = state.friends_socket.write.write().await;
@@ -277,10 +255,7 @@ impl FriendsSocket {
     }
 
     #[tracing::instrument(skip(self))]
-    pub async fn update_status(
-        &self,
-        profile_name: Option<String>,
-    ) -> crate::modrinth::Result<()> {
+    pub async fn update_status(&self, profile_name: Option<String>) -> crate::modrinth::Result<()> {
         Self::send_message(
             &self.write,
             ClientToServerMessage::StatusUpdate { profile_name },
@@ -368,12 +343,13 @@ impl FriendsSocket {
     #[tracing::instrument(skip(self))]
     pub async fn open_port(&self, port: u16) -> crate::modrinth::Result<TunnelSocket> {
         let socket_id = Uuid::new_v4();
-        let socket = self.tunnel_sockets.entry(socket_id).insert(Arc::new(
-            InternalTunnelSocket::Listening(SocketAddr::new(
-                "127.0.0.1".parse().unwrap(),
-                port,
-            )),
-        ));
+        let socket =
+            self.tunnel_sockets
+                .entry(socket_id)
+                .insert(Arc::new(InternalTunnelSocket::Listening(SocketAddr::new(
+                    "127.0.0.1".parse().unwrap(),
+                    port,
+                ))));
         Self::send_message(
             &self.write,
             ClientToServerMessage::SocketListen { socket: socket_id },
@@ -399,11 +375,7 @@ impl FriendsSocket {
         })
     }
 
-    fn socket_read_loop(
-        write: WriteSocket,
-        mut read_half: OwnedReadHalf,
-        socket_id: Uuid,
-    ) {
+    fn socket_read_loop(write: WriteSocket, mut read_half: OwnedReadHalf, socket_id: Uuid) {
         tokio::spawn(async move {
             let mut read_buffer = [0u8; 8192];
             loop {

@@ -40,12 +40,10 @@ pub async fn import_gdlauncher(
 ) -> crate::modrinth::Result<()> {
     // Load config.json
     let config = serde_json::from_str::<GDLauncherConfig>(
-        &io::read_any_encoding_to_string(
-            &gdlauncher_instance_folder.join("config.json"),
-        )
-        .await
-        .unwrap_or(("".into(), encoding_rs::UTF_8))
-        .0,
+        &io::read_any_encoding_to_string(&gdlauncher_instance_folder.join("config.json"))
+            .await
+            .unwrap_or(("".into(), encoding_rs::UTF_8))
+            .0,
     )?;
     let override_title = config.loader.source_name;
     let backup_name = format!(
@@ -107,12 +105,8 @@ pub async fn import_gdlauncher(
     .await?;
 
     if let Some(profile_val) = crate::modrinth::api::profile::get(profile_path).await? {
-        crate::modrinth::launcher::install_minecraft(
-            &profile_val,
-            Some(loading_bar),
-            false,
-        )
-        .await?;
+        crate::modrinth::launcher::install_minecraft(&profile_val, Some(loading_bar), false)
+            .await?;
     }
 
     Ok(())

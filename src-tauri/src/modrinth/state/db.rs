@@ -1,18 +1,13 @@
 use crate::modrinth::state::DirectoryInfo;
-use sqlx::sqlite::{
-    SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions,
-};
+use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions};
 use sqlx::{Pool, Sqlite};
 use std::str::FromStr;
 use std::time::Duration;
 
-pub(crate) async fn connect(
-    app_identifier: &str,
-) -> crate::modrinth::Result<Pool<Sqlite>> {
-    let settings_dir = DirectoryInfo::initial_settings_dir_path(app_identifier)
-        .ok_or(crate::modrinth::ErrorKind::FSError(
-            "Could not find valid config dir".to_string(),
-        ))?;
+pub(crate) async fn connect(app_identifier: &str) -> crate::modrinth::Result<Pool<Sqlite>> {
+    let settings_dir = DirectoryInfo::initial_settings_dir_path(app_identifier).ok_or(
+        crate::modrinth::ErrorKind::FSError("Could not find valid config dir".to_string()),
+    )?;
 
     if !settings_dir.exists() {
         crate::modrinth::util::io::create_dir_all(&settings_dir).await?;
@@ -34,9 +29,7 @@ pub(crate) async fn connect(
     sqlx::migrate!().run(&pool).await?;
 
     if let Err(err) = stale_data_cleanup(&pool).await {
-        tracing::warn!(
-            "Failed to clean up stale data from state database: {err}"
-        );
+        tracing::warn!("Failed to clean up stale data from state database: {err}");
     }
 
     Ok(pool)

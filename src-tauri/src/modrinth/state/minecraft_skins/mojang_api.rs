@@ -18,10 +18,7 @@ use crate::modrinth::{
 pub struct MinecraftCapeOperation;
 
 impl MinecraftCapeOperation {
-    pub async fn equip(
-        credentials: &Credentials,
-        cape_id: Uuid,
-    ) -> crate::modrinth::Result<()> {
+    pub async fn equip(credentials: &Credentials, cape_id: Uuid) -> crate::modrinth::Result<()> {
         update_profile_cache_from_response(
             REQWEST_CLIENT
                 .put("https://api.minecraftservices.com/minecraft/profile/capes/active")
@@ -33,7 +30,7 @@ impl MinecraftCapeOperation {
                 }))
                 .send()
                 .await
-                .and_then(|response| response.error_for_status())?
+                .and_then(|response| response.error_for_status())?,
         )
         .await;
 
@@ -48,7 +45,7 @@ impl MinecraftCapeOperation {
                 .bearer_auth(&credentials.access_token)
                 .send()
                 .await
-                .and_then(|response| response.error_for_status())?
+                .and_then(|response| response.error_for_status())?,
         )
         .await;
 
@@ -93,9 +90,7 @@ impl MinecraftSkinOperation {
 
         update_profile_cache_from_response(
             REQWEST_CLIENT
-                .post(
-                    "https://api.minecraftservices.com/minecraft/profile/skins",
-                )
+                .post("https://api.minecraftservices.com/minecraft/profile/skins")
                 .header("Accept", "application/json")
                 .bearer_auth(&credentials.access_token)
                 .multipart(form)
@@ -116,7 +111,7 @@ impl MinecraftSkinOperation {
                 .bearer_auth(&credentials.access_token)
                 .send()
                 .await
-                .and_then(|response| response.error_for_status())?
+                .and_then(|response| response.error_for_status())?,
         )
         .await;
 
@@ -125,8 +120,7 @@ impl MinecraftSkinOperation {
 }
 
 async fn update_profile_cache_from_response(response: reqwest::Response) {
-    let Some(mut profile) = response.json::<MinecraftProfile>().await.ok()
-    else {
+    let Some(mut profile) = response.json::<MinecraftProfile>().await.ok() else {
         tracing::warn!(
             "Failed to parse player profile from skin or cape operation response, not updating profile cache"
         );

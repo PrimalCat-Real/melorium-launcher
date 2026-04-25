@@ -18,9 +18,9 @@ use tracing::{info, trace};
 #[tracing::instrument]
 #[allow(clippy::too_many_arguments)]
 pub async fn profile_create(
-    name: String,         // the name of the profile, and relative path
-    game_version: String, // the game version of the profile
-    modloader: ModLoader, // the modloader to use
+    name: String,                    // the name of the profile, and relative path
+    game_version: String,            // the game version of the profile
+    modloader: ModLoader,            // the modloader to use
     loader_version: Option<String>, // the modloader version to use, set to "latest", "stable", or the ID of your chosen loader. defaults to latest
     icon_path: Option<String>,      // the icon for the profile
     linked_data: Option<LinkedData>, // the linked project ID (mainly for modpacks)- used for updating
@@ -61,12 +61,7 @@ pub async fn profile_create(
         &canonicalize(&full_path)?.display()
     );
     let loader = if modloader != ModLoader::Vanilla {
-        get_loader_version_from_profile(
-            &game_version,
-            modloader,
-            loader_version.as_deref(),
-        )
-        .await?
+        get_loader_version_from_profile(&game_version, modloader, loader_version.as_deref()).await?
     } else {
         None
     };
@@ -103,8 +98,7 @@ pub async fn profile_create(
 
     let result = async {
         if let Some(ref icon) = icon_path {
-            let (bytes, file_name) = if icon.starts_with("https://")
-                || icon.starts_with("http://")
+            let (bytes, file_name) = if icon.starts_with("https://") || icon.starts_with("http://")
             {
                 let fetched = crate::modrinth::util::fetch::fetch(
                     icon,
@@ -113,12 +107,10 @@ pub async fn profile_create(
                     &state.pool,
                 )
                 .await?;
-                let name =
-                    icon.rsplit('/').next().unwrap_or("icon").to_string();
+                let name = icon.rsplit('/').next().unwrap_or("icon").to_string();
                 (fetched, name)
             } else {
-                let data =
-                    io::read(state.directories.caches_dir().join(icon)).await?;
+                let data = io::read(state.directories.caches_dir().join(icon)).await?;
                 (bytes::Bytes::from(data), icon.clone())
             };
             profile
@@ -160,13 +152,11 @@ pub async fn profile_create(
     }
 }
 
-pub async fn profile_create_from_duplicate(
-    copy_from: &str,
-) -> crate::modrinth::Result<String> {
+pub async fn profile_create_from_duplicate(copy_from: &str) -> crate::modrinth::Result<String> {
     // Original profile
-    let profile = profile::get(copy_from).await?.ok_or_else(|| {
-        ErrorKind::UnmanagedProfileError(copy_from.to_string())
-    })?;
+    let profile = profile::get(copy_from)
+        .await?
+        .ok_or_else(|| ErrorKind::UnmanagedProfileError(copy_from.to_string()))?;
 
     let profile_path_id = profile_create(
         profile.name.clone(),
@@ -189,13 +179,11 @@ pub async fn profile_create_from_duplicate(
     )
     .await?;
 
-    let duplicated_profile =
-        profile::get(&profile_path_id).await?.ok_or_else(|| {
-            ErrorKind::UnmanagedProfileError(profile_path_id.to_string())
-        })?;
+    let duplicated_profile = profile::get(&profile_path_id)
+        .await?
+        .ok_or_else(|| ErrorKind::UnmanagedProfileError(profile_path_id.to_string()))?;
 
-    crate::modrinth::launcher::install_minecraft(&duplicated_profile, Some(bar), false)
-        .await?;
+    crate::modrinth::launcher::install_minecraft(&duplicated_profile, Some(bar), false).await?;
 
     // emit profile edited
     emit_profile(&profile.path, ProfilePayloadType::Edited).await?;

@@ -93,8 +93,7 @@ impl FenceInner {
     /// - For the second block, between 4 and 10 minutes.
     /// - For the third block and any further blocks, between 6 and 15 minutes.
     fn trigger_block(&mut self) {
-        self.block_factor =
-            i32::min(self.block_factor + 1, Self::BLOCK_DURATION_MAX_FACTOR);
+        self.block_factor = i32::min(self.block_factor + 1, Self::BLOCK_DURATION_MAX_FACTOR);
 
         let min = Self::BLOCK_DURATION_MIN_BASE
             .checked_mul(self.block_factor)
@@ -103,10 +102,8 @@ impl FenceInner {
             .checked_mul(self.block_factor)
             .unwrap_or(Self::BLOCK_DURATION_MAX_BASE);
 
-        let delta_seconds = (max - min).as_seconds_f64()
-            * rand::thread_rng().gen_range(0.0..=1.0);
-        let duration =
-            min + TimeDelta::milliseconds((delta_seconds * 1000.0) as i64);
+        let delta_seconds = (max - min).as_seconds_f64() * rand::thread_rng().gen_range(0.0..=1.0);
+        let duration = min + TimeDelta::milliseconds((delta_seconds * 1000.0) as i64);
 
         self.block_until = Some(Utc::now() + duration);
     }
@@ -125,17 +122,15 @@ impl FenceInner {
     }
 }
 
-static GLOBAL_FETCH_FENCE: LazyLock<FetchFence> =
-    LazyLock::new(|| FetchFence {
-        inner: Mutex::new(FenceInner::new()),
-    });
+static GLOBAL_FETCH_FENCE: LazyLock<FetchFence> = LazyLock::new(|| FetchFence {
+    inner: Mutex::new(FenceInner::new()),
+});
 
 pub static REQWEST_CLIENT: LazyLock<reqwest::Client> = LazyLock::new(|| {
     let mut headers = reqwest::header::HeaderMap::new();
 
     let header =
-        reqwest::header::HeaderValue::from_str(&crate::modrinth::launcher_user_agent())
-            .unwrap();
+        reqwest::header::HeaderValue::from_str(&crate::modrinth::launcher_user_agent()).unwrap();
     headers.insert(reqwest::header::USER_AGENT, header);
     reqwest::Client::builder()
         .tcp_keepalive(Some(time::Duration::from_secs(10)))
@@ -153,8 +148,7 @@ pub async fn fetch(
     semaphore: &FetchSemaphore,
     exec: impl sqlx::Executor<'_, Database = sqlx::Sqlite>,
 ) -> crate::modrinth::Result<Bytes> {
-    fetch_advanced(Method::GET, url, sha1, None, None, None, semaphore, exec)
-        .await
+    fetch_advanced(Method::GET, url, sha1, None, None, None, semaphore, exec).await
 }
 
 #[tracing::instrument(skip(json_body, semaphore))]
@@ -169,10 +163,7 @@ pub async fn fetch_json<T>(
 where
     T: DeserializeOwned,
 {
-    let result = fetch_advanced(
-        method, url, sha1, json_body, None, None, semaphore, exec,
-    )
-    .await?;
+    let result = fetch_advanced(method, url, sha1, json_body, None, None, semaphore, exec).await?;
     let value = serde_json::from_slice(&result)?;
     Ok(value)
 }
@@ -192,8 +183,8 @@ pub async fn fetch_advanced(
 ) -> crate::modrinth::Result<Bytes> {
     let _permit = semaphore.0.acquire().await?;
 
-    let is_api_url = url.starts_with(env!("MODRINTH_API_URL"))
-        || url.starts_with(env!("MODRINTH_API_URL_V3"));
+    let is_api_url =
+        url.starts_with(env!("MODRINTH_API_URL")) || url.starts_with(env!("MODRINTH_API_URL_V3"));
 
     let creds = if header
         .as_ref()
@@ -237,9 +228,7 @@ pub async fn fetch_advanced(
                     }
                 }
 
-                if resp.status().is_client_error()
-                    || resp.status().is_server_error()
-                {
+                if resp.status().is_client_error() || resp.status().is_server_error() {
                     let backup_error = resp.error_for_status_ref().unwrap_err();
                     if let Ok(error) = resp.json().await {
                         return Err(ErrorKind::LabrinthError(error).into());
@@ -254,14 +243,12 @@ pub async fn fetch_advanced(
                         let mut stream = resp.bytes_stream();
                         let mut bytes = Vec::new();
                         while let Some(item) = stream.next().await {
-                            let chunk = item.or(Err(ErrorKind::NoValueFor(
-                                "fetch bytes".to_string(),
-                            )))?;
+                            let chunk =
+                                item.or(Err(ErrorKind::NoValueFor("fetch bytes".to_string())))?;
                             bytes.append(&mut chunk.to_vec());
                             emit_loading(
                                 bar,
-                                (chunk.len() as f64 / total_size as f64)
-                                    * total,
+                                (chunk.len() as f64 / total_size as f64) * total,
                                 None,
                             )?;
                         }
@@ -281,11 +268,7 @@ pub async fn fetch_advanced(
                             if attempt <= FETCH_ATTEMPTS {
                                 continue;
                             } else {
-                                return Err(ErrorKind::HashError(
-                                    sha1.to_string(),
-                                    hash,
-                                )
-                                .into());
+                                return Err(ErrorKind::HashError(sha1.to_string(), hash).into());
                             }
                         }
                     }
@@ -322,9 +305,7 @@ pub async fn fetch_mirrors(
     exec: impl sqlx::Executor<'_, Database = sqlx::Sqlite> + Copy,
 ) -> crate::modrinth::Result<Bytes> {
     if mirrors.is_empty() {
-        return Err(
-            ErrorKind::InputError("No mirrors provided!".to_string()).into()
-        );
+        return Err(ErrorKind::InputError("No mirrors provided!".to_string()).into());
     }
 
     for (index, mirror) in mirrors.iter().enumerate() {
@@ -350,9 +331,7 @@ pub async fn post_json(
 
     let mut req = REQWEST_CLIENT.post(url).json(&json_body);
 
-    if let Some(creds) =
-        crate::modrinth::state::ModrinthCredentials::get_active(exec).await?
-    {
+    if let Some(creds) = crate::modrinth::state::ModrinthCredentials::get_active(exec).await? {
         req = req.header("Authorization", &creds.session);
     }
 
@@ -360,10 +339,7 @@ pub async fn post_json(
     Ok(())
 }
 
-pub async fn read_json<T>(
-    path: &Path,
-    semaphore: &IoSemaphore,
-) -> crate::modrinth::Result<T>
+pub async fn read_json<T>(path: &Path, semaphore: &IoSemaphore) -> crate::modrinth::Result<T>
 where
     T: DeserializeOwned,
 {
@@ -412,11 +388,7 @@ pub async fn copy(
     }
 
     io::copy(src, dest).await?;
-    tracing::trace!(
-        "Done copying file {} to {}",
-        src.display(),
-        dest.display()
-    );
+    tracing::trace!("Done copying file {} to {}", src.display(), dest.display());
     Ok(())
 }
 
@@ -443,10 +415,8 @@ pub async fn write_cached_icon(
 }
 
 pub async fn sha1_async(bytes: Bytes) -> crate::modrinth::Result<String> {
-    let hash = tokio::task::spawn_blocking(move || {
-        sha1_smol::Sha1::from(bytes).hexdigest()
-    })
-    .await?;
+    let hash =
+        tokio::task::spawn_blocking(move || sha1_smol::Sha1::from(bytes).hexdigest()).await?;
 
     Ok(hash)
 }

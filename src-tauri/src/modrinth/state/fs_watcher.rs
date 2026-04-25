@@ -143,10 +143,7 @@ pub async fn init_watcher() -> crate::modrinth::Result<FileWatcher> {
 }
 
 /// Watches all existing profiles
-pub(crate) async fn watch_profiles_init(
-    watcher: &FileWatcher,
-    dirs: &DirectoryInfo,
-) {
+pub(crate) async fn watch_profiles_init(watcher: &FileWatcher, dirs: &DirectoryInfo) {
     if let Ok(profiles_dir) = std::fs::read_dir(dirs.profiles_dir()) {
         for profile_dir in profiles_dir {
             if let Ok(file_name) = profile_dir.map(|x| x.file_name())
@@ -162,11 +159,7 @@ pub(crate) async fn watch_profiles_init(
     }
 }
 
-pub(crate) async fn watch_profile(
-    profile_path: &str,
-    watcher: &FileWatcher,
-    dirs: &DirectoryInfo,
-) {
+pub(crate) async fn watch_profile(profile_path: &str, watcher: &FileWatcher, dirs: &DirectoryInfo) {
     let profile_path = dirs.profiles_dir().join(profile_path);
 
     if profile_path.exists() && profile_path.is_dir() {
@@ -179,12 +172,9 @@ pub(crate) async fn watch_profile(
             if !full_path.exists()
                 && !full_path.is_symlink()
                 && !sub_path.contains(".")
-                && let Err(e) =
-                    crate::modrinth::util::io::create_dir_all(&full_path).await
+                && let Err(e) = crate::modrinth::util::io::create_dir_all(&full_path).await
             {
-                tracing::error!(
-                    "Failed to create directory for watcher {full_path:?}: {e}"
-                );
+                tracing::error!("Failed to create directory for watcher {full_path:?}: {e}");
                 return;
             }
 
@@ -193,9 +183,7 @@ pub(crate) async fn watch_profile(
                 .watcher()
                 .watch(&full_path, RecursiveMode::Recursive)
             {
-                tracing::error!(
-                    "Failed to watch directory for watcher {full_path:?}: {e}"
-                );
+                tracing::error!("Failed to watch directory for watcher {full_path:?}: {e}");
                 return;
             }
         }
@@ -220,13 +208,17 @@ fn crash_task(path: String) {
             if let Some(profile) = profile {
                 // Hide warning if profile is not yet installed
                 if profile.install_stage == ProfileInstallStage::Installed {
-                    emit_warning(&format!("Profile {} has crashed! Visit the logs page to see a crash report.", profile.name)).await?;
+                    emit_warning(&format!(
+                        "Profile {} has crashed! Visit the logs page to see a crash report.",
+                        profile.name
+                    ))
+                    .await?;
                 }
             }
 
             Ok::<(), crate::modrinth::Error>(())
         }
-            .await;
+        .await;
 
         match res {
             Ok(()) => {}

@@ -19,8 +19,7 @@ pub async fn update_managed_modrinth_version(
     new_version_id: &String,
 ) -> crate::modrinth::Result<()> {
     let profile = get(profile_path).await?.ok_or_else(|| {
-        crate::modrinth::ErrorKind::UnmanagedProfileError(profile_path.to_string())
-            .as_error()
+        crate::modrinth::ErrorKind::UnmanagedProfileError(profile_path.to_string()).as_error()
     })?;
 
     let unmanaged_err = || {
@@ -53,8 +52,7 @@ pub async fn update_managed_modrinth_version(
 
 pub async fn repair_managed_modrinth(profile_path: &str) -> crate::modrinth::Result<()> {
     let profile = get(profile_path).await?.ok_or_else(|| {
-        crate::modrinth::ErrorKind::UnmanagedProfileError(profile_path.to_string())
-            .as_error()
+        crate::modrinth::ErrorKind::UnmanagedProfileError(profile_path.to_string()).as_error()
     })?;
 
     let unmanaged_err = || {
@@ -119,9 +117,7 @@ async fn replace_managed_modrinth(
     // Fetch .mrpacks for both old and new versions
     // TODO: this will need to be updated if we revert the hacky pack method we needed for compiler speed
 
-    let (old_pack_creator, new_pack_creator) = if let Some(new_version_id) =
-        new_version_id
-    {
+    let (old_pack_creator, new_pack_creator) = if let Some(new_version_id) = new_version_id {
         let shared_loading_bar = init_loading(
             LoadingBarType::PackFileDownload {
                 profile_path: crate::modrinth::api::profile::get_full_path(profile_path)
@@ -174,22 +170,15 @@ async fn replace_managed_modrinth(
     // Removal - remove all files that were added by the old pack
     // - remove all installed projects
     // - remove all overrides
-    pack::install_mrpack::remove_all_related_files(
-        profile_path.to_string(),
-        old_pack_creator.file,
-    )
-    .await?;
+    pack::install_mrpack::remove_all_related_files(profile_path.to_string(), old_pack_creator.file)
+        .await?;
 
     // Reinstallation - install all files that are added by the new pack
     // - install all projects
     // - install all overrides
     // - edits the profile to update the new data
     // - (functionals almost identically to rteinstalling the pack 'in-place')
-    pack::install_mrpack::install_zipped_mrpack_files(
-        new_pack_creator,
-        ignore_lock,
-    )
-    .await?;
+    pack::install_mrpack::install_zipped_mrpack_files(new_pack_creator, ignore_lock).await?;
 
     Ok(())
 }

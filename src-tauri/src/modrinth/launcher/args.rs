@@ -46,12 +46,7 @@ pub fn get_class_paths(
         })
         .chain(libraries.iter().filter_map(|library| {
             if let Some(rules) = &library.rules
-                && !parse_rules(
-                    rules,
-                    java_arch,
-                    &QuickPlayType::None,
-                    minecraft_updated,
-                )
+                && !parse_rules(rules, java_arch, &QuickPlayType::None, minecraft_updated)
             {
                 return None;
             }
@@ -66,9 +61,7 @@ pub fn get_class_paths(
                 library.natives_os_key_and_classifiers(java_arch).is_some(),
             ))
         }))
-        .process_results(|iter| {
-            iter.unique().join(classpath_separator(java_arch))
-        })
+        .process_results(|iter| iter.unique().join(classpath_separator(java_arch)))
 }
 
 pub fn get_class_paths_jar<T: AsRef<str>>(
@@ -93,9 +86,7 @@ pub fn get_lib_path(
 
     let path = match canonicalize(&path) {
         Ok(p) => p,
-        Err(err) if err.kind() == ErrorKind::NotFound && allow_not_exist => {
-            path
-        }
+        Err(err) if err.kind() == ErrorKind::NotFound && allow_not_exist => path,
         Err(err) => {
             return Err(crate::modrinth::ErrorKind::LauncherError(format!(
                 "Could not canonicalize library path {}: {err}",
@@ -161,8 +152,7 @@ pub fn get_jvm_arguments(
 
     parsed_arguments.push(format!("-Xmx{}M", memory.maximum));
 
-    if let Some(LoggingConfiguration::Log4j2Xml { argument, file }) = log_config
-    {
+    if let Some(LoggingConfiguration::Log4j2Xml { argument, file }) = log_config {
         let full_path = log_configs_path.join(&file.id);
         let full_path = full_path.to_string_lossy();
         parsed_arguments.push(argument.replace("${path}", &full_path));
@@ -181,10 +171,8 @@ pub fn get_jvm_arguments(
             .to_string_lossy()
     ));
 
-    parsed_arguments
-        .push(format!("-Dmodrinth.internal.ipc.host={}", ipc_addr.ip()));
-    parsed_arguments
-        .push(format!("-Dmodrinth.internal.ipc.port={}", ipc_addr.port()));
+    parsed_arguments.push(format!("-Dmodrinth.internal.ipc.host={}", ipc_addr.ip()));
+    parsed_arguments.push(format!("-Dmodrinth.internal.ipc.port={}", ipc_addr.port()));
 
     parsed_arguments.push(format!(
         "-Dmodrinth.internal.quickPlay.serverVersion={}",
@@ -422,8 +410,7 @@ where
     for argument in arguments {
         match argument {
             Argument::Normal(arg) => {
-                let parsed =
-                    parse_function(&arg.replace(' ', TEMPORARY_REPLACE_CHAR))?;
+                let parsed = parse_function(&arg.replace(' ', TEMPORARY_REPLACE_CHAR))?;
                 for arg in parsed.split(TEMPORARY_REPLACE_CHAR) {
                     parsed_arguments.push(arg.to_string());
                 }
@@ -432,9 +419,8 @@ where
                 if parse_rules(rules, java_arch, quick_play_type, true) {
                     match value {
                         ArgumentValue::Single(arg) => {
-                            parsed_arguments.push(parse_function(
-                                &arg.replace(' ', TEMPORARY_REPLACE_CHAR),
-                            )?);
+                            parsed_arguments
+                                .push(parse_function(&arg.replace(' ', TEMPORARY_REPLACE_CHAR))?);
                         }
                         ArgumentValue::Many(args) => {
                             for arg in args {
@@ -491,8 +477,7 @@ pub fn get_processor_arguments(
 
                 // replace variables like `{PATH}` to their real values
                 for (key, entry) in data {
-                    let replacement = if let Some(arg) =
-                        entry.client.strip_prefix('[')
+                    let replacement = if let Some(arg) = entry.client.strip_prefix('[')
                         && let Some(lib_key) = arg.strip_suffix(']')
                     {
                         // if the value of `PATH` in `data` is also a library key,
@@ -512,17 +497,12 @@ pub fn get_processor_arguments(
         .collect::<crate::modrinth::Result<Vec<_>>>()
 }
 
-pub async fn get_processor_main_class(
-    path: String,
-) -> crate::modrinth::Result<Option<String>> {
+pub async fn get_processor_main_class(path: String) -> crate::modrinth::Result<Option<String>> {
     let main_class = tokio::task::spawn_blocking(move || {
-        let zipfile = std::fs::File::open(&path)
-            .map_err(|e| IOError::with_path(e, &path))?;
+        let zipfile = std::fs::File::open(&path).map_err(|e| IOError::with_path(e, &path))?;
         let mut archive = zip::ZipArchive::new(zipfile).map_err(|_| {
-            crate::modrinth::ErrorKind::LauncherError(format!(
-                "Cannot read processor at {path}"
-            ))
-            .as_error()
+            crate::modrinth::ErrorKind::LauncherError(format!("Cannot read processor at {path}"))
+                .as_error()
         })?;
 
         let file = archive.by_name("META-INF/MANIFEST.MF").map_err(|_| {

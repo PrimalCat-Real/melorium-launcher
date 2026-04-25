@@ -51,9 +51,7 @@ pub struct MMCInstance {
 }
 
 // serde_ini reads 'true' and 'false' as strings, so we need to convert them to booleans
-fn deserialize_optional_bool<'de, D>(
-    deserializer: D,
-) -> Result<Option<bool>, D::Error>
+fn deserialize_optional_bool<'de, D>(deserializer: D) -> Result<Option<bool>, D::Error>
 where
     D: de::Deserializer<'de>,
 {
@@ -145,8 +143,7 @@ pub async fn is_valid_mmc(instance_folder: PathBuf) -> bool {
     let instance_cfg = instance_folder.join("instance.cfg");
     let mmc_pack = instance_folder.join("mmc-pack.json");
 
-    let Ok((mmc_pack, _)) = io::read_any_encoding_to_string(&mmc_pack).await
-    else {
+    let Ok((mmc_pack, _)) = io::read_any_encoding_to_string(&mmc_pack).await else {
         return false;
     };
 
@@ -180,19 +177,15 @@ pub async fn import_mmc(
     instance_folder: String, // instance folder in mmc_base_path
     profile_path: &str,      // path to profile
 ) -> crate::modrinth::Result<()> {
-    let mmc_instance_path =
-        mmc_base_path.join("instances").join(instance_folder);
+    let mmc_instance_path = mmc_base_path.join("instances").join(instance_folder);
 
     let mmc_pack = serde_json::from_str::<MMCPack>(
-        &io::read_any_encoding_to_string(
-            &mmc_instance_path.join("mmc-pack.json"),
-        )
-        .await?
-        .0,
+        &io::read_any_encoding_to_string(&mmc_instance_path.join("mmc-pack.json"))
+            .await?
+            .0,
     )?;
 
-    let instance_cfg =
-        load_instance_cfg(&mmc_instance_path.join("instance.cfg")).await?;
+    let instance_cfg = load_instance_cfg(&mmc_instance_path.join("instance.cfg")).await?;
 
     // Re-cache icon
     let icon = if let Some(icon_key) = instance_cfg.icon_key {
@@ -232,19 +225,46 @@ pub async fn import_mmc(
 
                 // Modrinth Managed Pack
                 // Kept separate as we may in the future want to add special handling for modrinth managed packs
-                import_mmc_unmanaged(profile_path, minecraft_folder, "Imported Modrinth Modpack".to_string(), description, mmc_pack).await?;
+                import_mmc_unmanaged(
+                    profile_path,
+                    minecraft_folder,
+                    "Imported Modrinth Modpack".to_string(),
+                    description,
+                    mmc_pack,
+                )
+                .await?;
             }
             Some(MMCManagedPackType::Flame | MMCManagedPackType::ATLauncher) => {
                 // For flame/atlauncher managed packs
                 // Treat as unmanaged, but with 'minecraft' folder instead of '.minecraft'
-                import_mmc_unmanaged(profile_path, minecraft_folder, "Imported Modpack".to_string(), description, mmc_pack).await?;
-            },
+                import_mmc_unmanaged(
+                    profile_path,
+                    minecraft_folder,
+                    "Imported Modpack".to_string(),
+                    description,
+                    mmc_pack,
+                )
+                .await?;
+            }
             Some(_) => {
                 // For managed packs that aren't modrinth, flame, atlauncher
                 // Treat as unmanaged
-                import_mmc_unmanaged(profile_path, minecraft_folder, "ImportedModpack".to_string(), description, mmc_pack).await?;
-            },
-            _ => return Err(crate::modrinth::ErrorKind::InputError("Instance is managed, but managed pack type not specified in instance.cfg".to_string()).into())
+                import_mmc_unmanaged(
+                    profile_path,
+                    minecraft_folder,
+                    "ImportedModpack".to_string(),
+                    description,
+                    mmc_pack,
+                )
+                .await?;
+            }
+            _ => {
+                return Err(crate::modrinth::ErrorKind::InputError(
+                    "Instance is managed, but managed pack type not specified in instance.cfg"
+                        .to_string(),
+                )
+                .into());
+            }
         }
     } else {
         // Directly import unmanaged pack
@@ -319,21 +339,12 @@ async fn import_mmc_unmanaged(
 
     // Moves .minecraft folder over (ie: overrides such as resourcepacks, mods, etc)
     let state = State::get().await?;
-    let loading_bar = copy_dotminecraft(
-        profile_path,
-        minecraft_folder,
-        &state.io_semaphore,
-        None,
-    )
-    .await?;
+    let loading_bar =
+        copy_dotminecraft(profile_path, minecraft_folder, &state.io_semaphore, None).await?;
 
     if let Some(profile_val) = crate::modrinth::api::profile::get(profile_path).await? {
-        crate::modrinth::launcher::install_minecraft(
-            &profile_val,
-            Some(loading_bar),
-            false,
-        )
-        .await?;
+        crate::modrinth::launcher::install_minecraft(&profile_val, Some(loading_bar), false)
+            .await?;
     }
     Ok(())
 }

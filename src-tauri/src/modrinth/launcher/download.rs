@@ -14,8 +14,7 @@ use daedalus::minecraft::{LoggingConfiguration, LoggingSide};
 use daedalus::{
     self as d,
     minecraft::{
-        Asset, AssetsIndex, Library, Version as GameVersion,
-        VersionInfo as GameVersionInfo,
+        Asset, AssetsIndex, Library, Version as GameVersion, VersionInfo as GameVersionInfo,
     },
     modded::LoaderVersion,
 };
@@ -34,8 +33,7 @@ pub async fn download_minecraft(
 ) -> crate::modrinth::Result<()> {
     tracing::info!("Downloading Minecraft version {}", version.id);
     // 5
-    let assets_index =
-        download_assets_index(st, version, Some(loading_bar), force).await?;
+    let assets_index = download_assets_index(st, version, Some(loading_bar), force).await?;
 
     let amount = if version.processors.as_ref().is_some_and(|x| !x.is_empty()) {
         25.0
@@ -64,8 +62,7 @@ pub async fn download_version_info(
     force: Option<bool>,
     loading_bar: Option<&LoadingBarId>,
 ) -> crate::modrinth::Result<GameVersionInfo> {
-    let version_id = loader
-        .map_or(version.id.clone(), |it| format!("{}-{}", version.id, it.id));
+    let version_id = loader.map_or(version.id.clone(), |it| format!("{}-{}", version.id, it.id));
     tracing::debug!("Loading version info for Minecraft {version_id}");
     let path = st
         .directories
@@ -216,8 +213,8 @@ pub async fn download_assets(
 ) -> crate::modrinth::Result<()> {
     tracing::debug!("Loading assets");
     let num_futs = index.objects.len();
-    let assets = stream::iter(index.objects.iter())
-        .map(Ok::<(&String, &Asset), crate::modrinth::Error>);
+    let assets =
+        stream::iter(index.objects.iter()).map(Ok::<(&String, &Asset), crate::modrinth::Error>);
 
     loading_try_for_each_concurrent(assets,
             None,
@@ -296,31 +293,21 @@ pub async fn download_libraries(
         None,
         |library| async move {
             if let Some(rules) = &library.rules
-                && !parse_rules(
-                    rules,
-                    java_arch,
-                    &QuickPlayType::None,
-                    minecraft_updated,
-                )
+                && !parse_rules(rules, java_arch, &QuickPlayType::None, minecraft_updated)
             {
                 tracing::trace!("Skipped library {}", &library.name);
                 return Ok(());
             }
 
             if !library.downloadable {
-                tracing::trace!(
-                    "Skipped non-downloadable library {}",
-                    &library.name
-                );
+                tracing::trace!("Skipped non-downloadable library {}", &library.name);
                 return Ok(());
             }
 
             // When a library has natives, we only need to download such natives, as PrismLauncher does
-            if let Some((os_key, classifiers)) =
-                library.natives_os_key_and_classifiers(java_arch)
-            {
-                let parsed_key = os_key
-                    .replace("${arch}", crate::modrinth::util::platform::ARCH_WIDTH);
+            if let Some((os_key, classifiers)) = library.natives_os_key_and_classifiers(java_arch) {
+                let parsed_key =
+                    os_key.replace("${arch}", crate::modrinth::util::platform::ARCH_WIDTH);
 
                 if let Some(native) = classifiers.get(&parsed_key) {
                     let data = fetch(
@@ -331,26 +318,16 @@ pub async fn download_libraries(
                     )
                     .await?;
 
-                    if let Ok(mut archive) =
-                        zip::ZipArchive::new(std::io::Cursor::new(&data))
-                    {
-                        match archive.extract(
-                            st.directories.version_natives_dir(version),
-                        ) {
-                            Ok(_) => tracing::debug!(
-                                "Fetched native {}",
-                                &library.name
-                            ),
+                    if let Ok(mut archive) = zip::ZipArchive::new(std::io::Cursor::new(&data)) {
+                        match archive.extract(st.directories.version_natives_dir(version)) {
+                            Ok(_) => tracing::debug!("Fetched native {}", &library.name),
                             Err(err) => tracing::error!(
                                 "Failed extracting native {}. err: {err}",
                                 &library.name
                             ),
                         }
                     } else {
-                        tracing::error!(
-                            "Failed extracting native {}",
-                            &library.name
-                        );
+                        tracing::error!("Failed extracting native {}", &library.name);
                     }
                 }
             } else {
@@ -376,11 +353,7 @@ pub async fn download_libraries(
                     .await?;
                     write(&path, &bytes, &st.io_semaphore).await?;
 
-                    tracing::trace!(
-                        "Fetched library {} to path {:?}",
-                        &library.name,
-                        &path
-                    );
+                    tracing::trace!("Fetched library {} to path {:?}", &library.name, &path);
                 } else {
                     // We lack an artifact URL, so fall back to constructing one ourselves.
                     // PrismLauncher just ignores the library if this is the case, so it's
@@ -395,10 +368,7 @@ pub async fn download_libraries(
                             .unwrap_or("https://libraries.minecraft.net/")
                     );
 
-                    tracing::trace!(
-                        "Attempting to fetch {} from {url}",
-                        library.name,
-                    );
+                    tracing::trace!("Attempting to fetch {} from {url}", library.name,);
 
                     // It's OK for this fetch to fail, since the URL might not even be valid.
                     // We're constructing a download URL basically out of thin air, and hoping
@@ -406,8 +376,7 @@ pub async fn download_libraries(
                     // failed download here is not a fatal condition.
                     //
                     // See DEV-479.
-                    match fetch(&url, None, &st.fetch_semaphore, &st.pool).await
-                    {
+                    match fetch(&url, None, &st.fetch_semaphore, &st.pool).await {
                         Ok(bytes) => {
                             write(&path, &bytes, &st.io_semaphore).await?;
 

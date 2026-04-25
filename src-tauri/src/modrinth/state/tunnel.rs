@@ -34,9 +34,7 @@ impl TunnelSocket {
                 },
             )
             .await?;
-            if let InternalTunnelSocket::Connected(ref stream) =
-                *self.internal.clone()
-            {
+            if let InternalTunnelSocket::Connected(ref stream) = *self.internal.clone() {
                 stream.lock().await.shutdown().await?
             }
         }

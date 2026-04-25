@@ -12,12 +12,10 @@ pub mod settings;
 
 pub mod data {
     pub use crate::modrinth::state::{
-        CacheBehaviour, CacheValueType, Credentials, Dependency, DirectoryInfo,
-        Hooks, JavaVersion, LinkedData, MemorySettings, ModLoader,
-        ModrinthCredentials, Organization, ProcessMetadata, ProfileFile,
-        Project, ProjectType, ProjectV3, SearchResult, SearchResults,
-        SearchResultsV3, Settings, TeamMember, Theme, User, UserFriend,
-        Version, WindowSize,
+        CacheBehaviour, CacheValueType, Credentials, Dependency, DirectoryInfo, Hooks, JavaVersion,
+        LinkedData, MemorySettings, ModLoader, ModrinthCredentials, Organization, ProcessMetadata,
+        ProfileFile, Project, ProjectType, ProjectV3, SearchResult, SearchResults, SearchResultsV3,
+        Settings, TeamMember, Theme, User, UserFriend, Version, WindowSize,
     };
     pub use ariadne::users::UserStatus;
 }

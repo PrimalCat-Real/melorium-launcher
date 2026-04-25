@@ -33,21 +33,17 @@ impl EventState {
             .cloned()
     }
 
-
-
     pub fn get() -> crate::modrinth::Result<Arc<Self>> {
         Ok(EVENT_STATE.get().ok_or(EventError::NotInitialized)?.clone())
     }
 
     // Values provided should not be used directly, as they are clones and are not guaranteed to be up-to-date
-    pub async fn list_progress_bars() -> crate::modrinth::Result<DashMap<Uuid, LoadingBar>>
-    {
+    pub async fn list_progress_bars() -> crate::modrinth::Result<DashMap<Uuid, LoadingBar>> {
         let value = Self::get()?;
         Ok(value.loading_bars.clone())
     }
 
-    pub async fn get_main_window() -> crate::modrinth::Result<Option<tauri::WebviewWindow>>
-    {
+    pub async fn get_main_window() -> crate::modrinth::Result<Option<tauri::WebviewWindow>> {
         use tauri::Manager;
         let value = Self::get()?;
         Ok(value.app.get_webview_window("main"))
@@ -77,9 +73,7 @@ impl Drop for LoadingBarId {
         let loader_uuid = self.0;
         tokio::spawn(async move {
             if let Ok(event_state) = EventState::get() {
-                if let Some((_, bar)) =
-                    event_state.loading_bars.remove(&loader_uuid)
-                {
+                if let Some((_, bar)) = event_state.loading_bars.remove(&loader_uuid) {
                     {
                         let loader_uuid = bar.loading_bar_uuid;
                         let event = bar.bar_type.clone();
@@ -94,10 +88,7 @@ impl Drop for LoadingBarId {
                                 loader_uuid,
                             },
                         );
-                        tracing::trace!(
-                            "Exited at {fraction} for loading bar: {:?}",
-                            loader_uuid
-                        );
+                        tracing::trace!("Exited at {fraction} for loading bar: {:?}", loader_uuid);
                     }
 
                     // Emit event to indicatif progress bar arc
@@ -258,4 +249,3 @@ pub enum EventError {
     #[error("Tauri error: {0}")]
     TauriError(#[from] tauri::Error),
 }
-

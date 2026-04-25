@@ -98,12 +98,10 @@ pub struct ATLauncherMod {
 // Check if folder has a instance.json that parses
 pub async fn is_valid_atlauncher(instance_folder: PathBuf) -> bool {
     let instance = serde_json::from_str::<ATInstance>(
-        &io::read_any_encoding_to_string(
-            &instance_folder.join("instance.json"),
-        )
-        .await
-        .unwrap_or(("".into(), encoding_rs::UTF_8))
-        .0,
+        &io::read_any_encoding_to_string(&instance_folder.join("instance.json"))
+            .await
+            .unwrap_or(("".into(), encoding_rs::UTF_8))
+            .0,
     );
 
     if let Err(e) = instance {
@@ -131,12 +129,10 @@ pub async fn import_atlauncher(
 
     // Load instance.json
     let atinstance = serde_json::from_str::<ATInstance>(
-        &io::read_any_encoding_to_string(
-            &atlauncher_instance_path.join("instance.json"),
-        )
-        .await
-        .unwrap_or(("".into(), encoding_rs::UTF_8))
-        .0,
+        &io::read_any_encoding_to_string(&atlauncher_instance_path.join("instance.json"))
+            .await
+            .unwrap_or(("".into(), encoding_rs::UTF_8))
+            .0,
     )?;
 
     // Icon path should be {instance_folder}/instance.png if it exists,
@@ -151,8 +147,7 @@ pub async fn import_atlauncher(
         .join("configs")
         .join("images")
         .join(safe_pack_name + ".png");
-    let icon = match (icon_path_primary.exists(), icon_path_secondary.exists())
-    {
+    let icon = match (icon_path_primary.exists(), icon_path_secondary.exists()) {
         (true, _) => import::recache_icon(icon_path_primary).await?,
         (_, true) => import::recache_icon(icon_path_secondary).await?,
         _ => None,
@@ -193,12 +188,11 @@ async fn import_atlauncher_unmanaged(
         "\"{}\"",
         atinstance.launcher.loader_version.r#type.to_lowercase()
     );
-    let mod_loader: ModLoader = serde_json::from_str::<ModLoader>(&mod_loader)
-        .map_err(|_| {
-            crate::modrinth::ErrorKind::InputError(format!(
-                "Could not parse mod loader type: {mod_loader}"
-            ))
-        })?;
+    let mod_loader: ModLoader = serde_json::from_str::<ModLoader>(&mod_loader).map_err(|_| {
+        crate::modrinth::ErrorKind::InputError(format!(
+            "Could not parse mod loader type: {mod_loader}"
+        ))
+    })?;
 
     let game_version = atinstance.id;
 
@@ -245,21 +239,12 @@ async fn import_atlauncher_unmanaged(
 
     // Moves .minecraft folder over (ie: overrides such as resourcepacks, mods, etc)
     let state = State::get().await?;
-    let loading_bar = copy_dotminecraft(
-        profile_path,
-        minecraft_folder,
-        &state.io_semaphore,
-        None,
-    )
-    .await?;
+    let loading_bar =
+        copy_dotminecraft(profile_path, minecraft_folder, &state.io_semaphore, None).await?;
 
     if let Some(profile_val) = crate::modrinth::api::profile::get(profile_path).await? {
-        crate::modrinth::launcher::install_minecraft(
-            &profile_val,
-            Some(loading_bar),
-            false,
-        )
-        .await?;
+        crate::modrinth::launcher::install_minecraft(&profile_val, Some(loading_bar), false)
+            .await?;
     }
     Ok(())
 }

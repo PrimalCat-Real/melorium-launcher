@@ -16,9 +16,7 @@ use crate::modrinth::{
     ErrorKind, State,
     state::{
         MinecraftCharacterExpressionState, MinecraftProfile,
-        minecraft_skins::{
-            CustomMinecraftSkin, DefaultMinecraftCape, mojang_api,
-        },
+        minecraft_skins::{CustomMinecraftSkin, DefaultMinecraftCape, mojang_api},
     },
 };
 
@@ -101,12 +99,11 @@ pub async fn get_available_capes() -> crate::modrinth::Result<Vec<Cape>> {
         .await?
         .ok_or(ErrorKind::NoCredentialsError)?;
 
-    let profile =
-        selected_credentials.online_profile().await.ok_or_else(|| {
-            ErrorKind::OnlineMinecraftProfileUnavailable {
-                user_name: selected_credentials.offline_profile.name.clone(),
-            }
-        })?;
+    let profile = selected_credentials.online_profile().await.ok_or_else(|| {
+        ErrorKind::OnlineMinecraftProfileUnavailable {
+            user_name: selected_credentials.offline_profile.name.clone(),
+        }
+    })?;
 
     let default_cape_id = DefaultMinecraftCape::get(profile.id, &state.pool)
         .await?
@@ -119,10 +116,8 @@ pub async fn get_available_capes() -> crate::modrinth::Result<Vec<Cape>> {
             id: cape.id,
             name: Arc::clone(&cape.name),
             texture: Arc::clone(&cape.url),
-            is_default: default_cape_id
-                .is_some_and(|default_cape_id| default_cape_id == cape.id),
-            is_equipped: cape.state
-                == MinecraftCharacterExpressionState::Active,
+            is_default: default_cape_id.is_some_and(|default_cape_id| default_cape_id == cape.id),
+            is_equipped: cape.state == MinecraftCharacterExpressionState::Active,
         })
         .collect())
 }
@@ -139,12 +134,11 @@ pub async fn get_available_skins() -> crate::modrinth::Result<Vec<Skin>> {
         .await?
         .ok_or(ErrorKind::NoCredentialsError)?;
 
-    let profile =
-        selected_credentials.online_profile().await.ok_or_else(|| {
-            ErrorKind::OnlineMinecraftProfileUnavailable {
-                user_name: selected_credentials.offline_profile.name.clone(),
-            }
-        })?;
+    let profile = selected_credentials.online_profile().await.ok_or_else(|| {
+        ErrorKind::OnlineMinecraftProfileUnavailable {
+            user_name: selected_credentials.offline_profile.name.clone(),
+        }
+    })?;
 
     let current_skin = profile.current_skin()?;
     let current_cape_id = profile.current_cape().map(|cape| cape.id);
@@ -197,24 +191,23 @@ pub async fn get_available_skins() -> crate::modrinth::Result<Vec<Skin>> {
             }
         });
 
-    let default_skins =
-        stream::iter(assets::DEFAULT_SKINS.iter().map(|default_skin| {
-            let is_equipped = !found_equipped_skin.load(Ordering::Acquire)
-                && default_skin.texture_key == current_skin.texture_key()
-                && default_skin.variant == current_skin.variant;
+    let default_skins = stream::iter(assets::DEFAULT_SKINS.iter().map(|default_skin| {
+        let is_equipped = !found_equipped_skin.load(Ordering::Acquire)
+            && default_skin.texture_key == current_skin.texture_key()
+            && default_skin.variant == current_skin.variant;
 
-            found_equipped_skin.fetch_or(is_equipped, Ordering::AcqRel);
+        found_equipped_skin.fetch_or(is_equipped, Ordering::AcqRel);
 
-            Ok::<_, crate::modrinth::Error>(Skin {
-                texture_key: Arc::clone(&default_skin.texture_key),
-                name: default_skin.name.as_ref().cloned(),
-                variant: default_skin.variant,
-                cape_id: None,
-                texture: Arc::clone(&default_skin.texture),
-                source: SkinSource::Default,
-                is_equipped,
-            })
-        }));
+        Ok::<_, crate::modrinth::Error>(Skin {
+            texture_key: Arc::clone(&default_skin.texture_key),
+            name: default_skin.name.as_ref().cloned(),
+            variant: default_skin.variant,
+            cape_id: None,
+            texture: Arc::clone(&default_skin.texture),
+            source: SkinSource::Default,
+            is_equipped,
+        })
+    }));
 
     let mut available_skins = custom_skins
         .chain(default_skins)
@@ -270,12 +263,11 @@ pub async fn add_and_equip_custom_skin(
     )
     .await?;
 
-    let profile =
-        selected_credentials.online_profile().await.ok_or_else(|| {
-            ErrorKind::OnlineMinecraftProfileUnavailable {
-                user_name: selected_credentials.offline_profile.name.clone(),
-            }
-        })?;
+    let profile = selected_credentials.online_profile().await.ok_or_else(|| {
+        ErrorKind::OnlineMinecraftProfileUnavailable {
+            user_name: selected_credentials.offline_profile.name.clone(),
+        }
+    })?;
 
     sync_cape(&state, &selected_credentials, &profile, cape_override).await?;
 
@@ -308,12 +300,11 @@ pub async fn set_default_cape(cape: Option<Cape>) -> crate::modrinth::Result<()>
         .await?
         .ok_or(ErrorKind::NoCredentialsError)?;
 
-    let profile =
-        selected_credentials.online_profile().await.ok_or_else(|| {
-            ErrorKind::OnlineMinecraftProfileUnavailable {
-                user_name: selected_credentials.offline_profile.name.clone(),
-            }
-        })?;
+    let profile = selected_credentials.online_profile().await.ok_or_else(|| {
+        ErrorKind::OnlineMinecraftProfileUnavailable {
+            user_name: selected_credentials.offline_profile.name.clone(),
+        }
+    })?;
     let current_skin = get_available_skins()
         .await?
         .into_iter()
@@ -324,20 +315,13 @@ pub async fn set_default_cape(cape: Option<Cape>) -> crate::modrinth::Result<()>
         // Synchronize the equipped cape with the new default cape, if the current skin uses
         // the default cape
         if current_skin.cape_id.is_none() {
-            mojang_api::MinecraftCapeOperation::equip(
-                &selected_credentials,
-                cape.id,
-            )
-            .await?;
+            mojang_api::MinecraftCapeOperation::equip(&selected_credentials, cape.id).await?;
         }
 
         DefaultMinecraftCape::set(profile.id, cape.id, &state.pool).await?;
     } else {
         if current_skin.cape_id.is_none() {
-            mojang_api::MinecraftCapeOperation::unequip_any(
-                &selected_credentials,
-            )
-            .await?;
+            mojang_api::MinecraftCapeOperation::unequip_any(&selected_credentials).await?;
         }
 
         DefaultMinecraftCape::remove(profile.id, &state.pool).await?;
@@ -359,12 +343,11 @@ pub async fn equip_skin(skin: Skin) -> crate::modrinth::Result<()> {
         .await?
         .ok_or(ErrorKind::NoCredentialsError)?;
 
-    let profile =
-        selected_credentials.online_profile().await.ok_or_else(|| {
-            ErrorKind::OnlineMinecraftProfileUnavailable {
-                user_name: selected_credentials.offline_profile.name.clone(),
-            }
-        })?;
+    let profile = selected_credentials.online_profile().await.ok_or_else(|| {
+        ErrorKind::OnlineMinecraftProfileUnavailable {
+            user_name: selected_credentials.offline_profile.name.clone(),
+        }
+    })?;
 
     mojang_api::MinecraftSkinOperation::equip(
         &selected_credentials,
@@ -417,15 +400,13 @@ pub async fn unequip_skin() -> crate::modrinth::Result<()> {
         .await?
         .ok_or(ErrorKind::NoCredentialsError)?;
 
-    let profile =
-        selected_credentials.online_profile().await.ok_or_else(|| {
-            ErrorKind::OnlineMinecraftProfileUnavailable {
-                user_name: selected_credentials.offline_profile.name.clone(),
-            }
-        })?;
+    let profile = selected_credentials.online_profile().await.ok_or_else(|| {
+        ErrorKind::OnlineMinecraftProfileUnavailable {
+            user_name: selected_credentials.offline_profile.name.clone(),
+        }
+    })?;
 
-    mojang_api::MinecraftSkinOperation::unequip_any(&selected_credentials)
-        .await?;
+    mojang_api::MinecraftSkinOperation::unequip_any(&selected_credentials).await?;
 
     sync_cape(&state, &selected_credentials, &profile, None).await?;
 
@@ -439,18 +420,14 @@ pub async fn unequip_skin() -> crate::modrinth::Result<()> {
 ///
 /// The normalized, processed is returned texture as a byte array in PNG format.
 #[tracing::instrument]
-pub async fn normalize_skin_texture(
-    texture: &UrlOrBlob,
-) -> crate::modrinth::Result<Bytes> {
+pub async fn normalize_skin_texture(texture: &UrlOrBlob) -> crate::modrinth::Result<Bytes> {
     png_util::normalize_skin_texture(texture).await
 }
 
 /// Reads and validates a skin texture file from the given path.
 /// Returns the file content as bytes if it's a valid skin texture (PNG with 64x64 or 64x32 dimensions).
 #[tracing::instrument]
-pub async fn get_dragged_skin_data(
-    path: &std::path::Path,
-) -> crate::modrinth::Result<Bytes> {
+pub async fn get_dragged_skin_data(path: &std::path::Path) -> crate::modrinth::Result<Bytes> {
     if let Some(extension) = path.extension() {
         if extension.to_string_lossy().to_lowercase() != "png" {
             return Err(ErrorKind::InvalidSkinTexture.into());
@@ -468,10 +445,7 @@ pub async fn get_dragged_skin_data(
 
     let data = match tokio::fs::read(path).await {
         Ok(data) => {
-            tracing::debug!(
-                "File read successfully, size: {} bytes",
-                data.len()
-            );
+            tracing::debug!("File read successfully, size: {} bytes", data.len());
             data
         }
         Err(err) => {
@@ -511,18 +485,9 @@ async fn sync_cape(
     if current_cape_id != target_cape_id {
         match target_cape_id {
             Some(cape_id) => {
-                mojang_api::MinecraftCapeOperation::equip(
-                    selected_credentials,
-                    cape_id,
-                )
-                .await?
+                mojang_api::MinecraftCapeOperation::equip(selected_credentials, cape_id).await?
             }
-            None => {
-                mojang_api::MinecraftCapeOperation::unequip_any(
-                    selected_credentials,
-                )
-                .await?
-            }
+            None => mojang_api::MinecraftCapeOperation::unequip_any(selected_credentials).await?,
         }
     }
 

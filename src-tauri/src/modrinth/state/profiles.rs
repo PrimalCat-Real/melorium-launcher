@@ -1,9 +1,7 @@
 use super::settings::{Hooks, MemorySettings, WindowSize};
 use crate::modrinth::profile::get_full_path;
 use crate::modrinth::state::server_join_log::JoinLogEntry;
-use crate::modrinth::state::{
-    CacheBehaviour, CachedEntry, CachedFileHash, cache_file_hash,
-};
+use crate::modrinth::state::{CacheBehaviour, CachedEntry, CachedFileHash, cache_file_hash};
 use crate::modrinth::util;
 use crate::modrinth::util::fetch::{FetchSemaphore, IoSemaphore, write_cached_icon};
 use crate::modrinth::util::io::{self};
@@ -96,9 +94,7 @@ impl ProfileInstallStage {
     }
 }
 
-#[derive(
-    Serialize, Deserialize, Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd,
-)]
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 #[serde(rename_all = "snake_case")]
 pub enum LauncherFeatureVersion {
     None,
@@ -112,9 +108,7 @@ impl LauncherFeatureVersion {
     pub fn as_str(&self) -> &'static str {
         match *self {
             Self::None => "none",
-            Self::MigratedServerLastPlayTime => {
-                "migrated_server_last_play_time"
-            }
+            Self::MigratedServerLastPlayTime => "migrated_server_last_play_time",
             Self::MigratedLaunchHooks => "migrated_launch_hooks",
         }
     }
@@ -122,9 +116,7 @@ impl LauncherFeatureVersion {
     pub fn from_str(val: &str) -> Self {
         match val {
             "none" => Self::None,
-            "migrated_server_last_play_time" => {
-                Self::MigratedServerLastPlayTime
-            }
+            "migrated_server_last_play_time" => Self::MigratedServerLastPlayTime,
             "migrated_launch_hooks" => Self::MigratedLaunchHooks,
             _ => Self::None,
         }
@@ -321,9 +313,7 @@ impl TryFrom<ProfileQueryResult> for Profile {
         Ok(Profile {
             path: x.path,
             install_stage: ProfileInstallStage::from_str(&x.install_stage),
-            launcher_feature_version: LauncherFeatureVersion::from_str(
-                &x.launcher_feature_version,
-            ),
+            launcher_feature_version: LauncherFeatureVersion::from_str(&x.launcher_feature_version),
             name: x.name,
             icon_path: x.icon_path,
             game_version: x.game_version,
@@ -352,25 +342,17 @@ impl TryFrom<ProfileQueryResult> for Profile {
                 .timestamp_opt(x.modified, 0)
                 .single()
                 .unwrap_or_else(Utc::now),
-            last_played: x
-                .last_played
-                .and_then(|x| Utc.timestamp_opt(x, 0).single()),
+            last_played: x.last_played.and_then(|x| Utc.timestamp_opt(x, 0).single()),
             submitted_time_played: x.submitted_time_played as u64,
             recent_time_played: x.recent_time_played as u64,
             java_path: x.override_java_path,
-            extra_launch_args: serde_json::from_value(
-                x.override_extra_launch_args,
-            )
-            .ok(),
-            custom_env_vars: serde_json::from_value(x.override_custom_env_vars)
-                .ok(),
+            extra_launch_args: serde_json::from_value(x.override_extra_launch_args).ok(),
+            custom_env_vars: serde_json::from_value(x.override_custom_env_vars).ok(),
             memory: x
                 .override_mc_memory_max
                 .map(|x| MemorySettings { maximum: x as u32 }),
             force_fullscreen: x.override_mc_force_fullscreen.map(|x| x == 1),
-            game_resolution: if let Some(x_res) =
-                x.override_mc_game_resolution_x
-            {
+            game_resolution: if let Some(x_res) = x.override_mc_game_resolution_x {
                 x.override_mc_game_resolution_y
                     .map(|y_res| WindowSize(x_res as u16, y_res as u16))
             } else {
@@ -422,12 +404,10 @@ impl Profile {
         exec: impl sqlx::Executor<'_, Database = sqlx::Sqlite>,
     ) -> crate::modrinth::Result<Vec<Self>> {
         let ids = serde_json::to_string(&paths)?;
-        let results = select_profiles_with_predicate!(
-            "WHERE path IN (SELECT value FROM json_each($1))",
-            ids
-        )
-        .fetch_all(exec)
-        .await?;
+        let results =
+            select_profiles_with_predicate!("WHERE path IN (SELECT value FROM json_each($1))", ids)
+                .fetch_all(exec)
+                .await?;
 
         results
             .into_iter()
@@ -460,10 +440,8 @@ impl Profile {
 
         let groups = serde_json::to_string(&self.groups)?;
 
-        let linked_data_project_id =
-            self.linked_data.as_ref().map(|x| x.project_id.clone());
-        let linked_data_version_id =
-            self.linked_data.as_ref().map(|x| x.version_id.clone());
+        let linked_data_project_id = self.linked_data.as_ref().map(|x| x.project_id.clone());
+        let linked_data_version_id = self.linked_data.as_ref().map(|x| x.version_id.clone());
         let linked_data_locked = self.linked_data.as_ref().map(|x| x.locked);
 
         let created = self.created.timestamp();
@@ -579,10 +557,7 @@ impl Profile {
         Ok(())
     }
 
-    pub async fn remove(
-        profile_path: &str,
-        pool: &SqlitePool,
-    ) -> crate::modrinth::Result<()> {
+    pub async fn remove(profile_path: &str, pool: &SqlitePool) -> crate::modrinth::Result<()> {
         sqlx::query!(
             "
             DELETE FROM profiles
@@ -593,8 +568,7 @@ impl Profile {
         .execute(pool)
         .await?;
 
-        if let Ok(path) = crate::modrinth::api::profile::get_full_path(profile_path).await
-        {
+        if let Ok(path) = crate::modrinth::api::profile::get_full_path(profile_path).await {
             io::remove_dir_all(&path).await?;
         }
 
@@ -609,8 +583,7 @@ impl Profile {
         icon: bytes::Bytes,
         file_name: &str,
     ) -> crate::modrinth::Result<()> {
-        let file =
-            write_cached_icon(file_name, cache_dir, icon, semaphore).await?;
+        let file = write_cached_icon(file_name, cache_dir, icon, semaphore).await?;
         self.icon_path = Some(file.to_string_lossy().to_string());
         self.modified = Utc::now();
         Ok(())
@@ -631,44 +604,32 @@ impl Profile {
                 let path = path.join(folder);
 
                 if path.exists() {
-                    for subdirectory in std::fs::read_dir(&path)
-                        .map_err(|e| io::IOError::with_path(e, &path))?
+                    for subdirectory in
+                        std::fs::read_dir(&path).map_err(|e| io::IOError::with_path(e, &path))?
                     {
-                        let subdirectory =
-                            subdirectory.map_err(io::IOError::from)?.path();
+                        let subdirectory = subdirectory.map_err(io::IOError::from)?.path();
                         if subdirectory.is_file()
-                            && let Some(file_name) = subdirectory
-                                .file_name()
-                                .and_then(|x| x.to_str())
+                            && let Some(file_name) =
+                                subdirectory.file_name().and_then(|x| x.to_str())
                         {
-                            let file_size = subdirectory
-                                .metadata()
-                                .map_err(io::IOError::from)?
-                                .len();
+                            let file_size =
+                                subdirectory.metadata().map_err(io::IOError::from)?.len();
 
-                            keys.push(format!(
-                                "{file_size}-{}/{folder}/{file_name}",
-                                profile.path
-                            ));
+                            keys.push(format!("{file_size}-{}/{folder}/{file_name}", profile.path));
                         }
                     }
                 }
             }
 
-            if profile.install_stage == ProfileInstallStage::MinecraftInstalling
-            {
+            if profile.install_stage == ProfileInstallStage::MinecraftInstalling {
                 profile.install_stage = ProfileInstallStage::PackInstalled;
                 profile.upsert(&state.pool).await?;
-            } else if profile.install_stage
-                == ProfileInstallStage::PackInstalling
-            {
+            } else if profile.install_stage == ProfileInstallStage::PackInstalling {
                 profile.install_stage = ProfileInstallStage::NotInstalled;
                 profile.upsert(&state.pool).await?;
             }
 
-            if profile.launcher_feature_version
-                < LauncherFeatureVersion::MOST_RECENT
-            {
+            if profile.launcher_feature_version < LauncherFeatureVersion::MOST_RECENT {
                 let state = state.clone();
                 let profile_path = profile.path.clone();
                 migrations.spawn(async move {
@@ -680,17 +641,30 @@ impl Profile {
 
                     tracing::info!(
                         "Migrating profile '{}' from launcher feature version {:?} to {:?}",
-                        profile.path, profile.launcher_feature_version, LauncherFeatureVersion::MOST_RECENT
+                        profile.path,
+                        profile.launcher_feature_version,
+                        LauncherFeatureVersion::MOST_RECENT
                     );
                     loop {
                         let result = profile.perform_launcher_feature_migration(&state).await;
-                        if result.is_err() || profile.launcher_feature_version == LauncherFeatureVersion::MOST_RECENT {
+                        if result.is_err()
+                            || profile.launcher_feature_version
+                                == LauncherFeatureVersion::MOST_RECENT
+                        {
                             if let Err(err) = result {
-                                tracing::error!("Failed to migrate instance '{}': {}", profile.path, err);
+                                tracing::error!(
+                                    "Failed to migrate instance '{}': {}",
+                                    profile.path,
+                                    err
+                                );
                                 return;
                             }
                             if let Err(err) = profile.upsert(&state.pool).await {
-                                tracing::error!("Failed to update instance '{}' migration state: {}", profile.path, err);
+                                tracing::error!(
+                                    "Failed to update instance '{}' migration state: {}",
+                                    profile.path,
+                                    err
+                                );
                                 return;
                             }
                             break;
@@ -719,10 +693,8 @@ impl Profile {
             })
             .collect::<Vec<_>>();
 
-        let file_hashes_ref =
-            file_hashes.iter().map(|x| &*x.hash).collect::<Vec<_>>();
-        let file_updates_ref =
-            file_updates.iter().map(|x| &**x).collect::<Vec<_>>();
+        let file_hashes_ref = file_hashes.iter().map(|x| &*x.hash).collect::<Vec<_>>();
+        let file_updates_ref = file_updates.iter().map(|x| &**x).collect::<Vec<_>>();
         tokio::try_join!(
             CachedEntry::get_file_many(
                 &file_hashes_ref,
@@ -763,8 +735,7 @@ impl Profile {
                     return Ok(());
                 };
                 let existing_joins_map =
-                    super::server_join_log::get_joins(&self.path, &state.pool)
-                        .await?;
+                    super::server_join_log::get_joins(&self.path, &state.pool).await?;
                 let existing_joins = existing_joins_map
                     .keys()
                     .map(|x| (&x.0 as &str, x.1))
@@ -785,36 +756,31 @@ impl Profile {
                         );
                     }
                 }
-                self.launcher_feature_version =
-                    LauncherFeatureVersion::MigratedServerLastPlayTime;
+                self.launcher_feature_version = LauncherFeatureVersion::MigratedServerLastPlayTime;
             }
             LauncherFeatureVersion::MigratedServerLastPlayTime => {
                 let quoter = shlex::Quoter::new().allow_nul(true);
 
                 // Previously split by spaces
                 if let Some(pre_launch) = self.hooks.pre_launch.as_ref() {
-                    self.hooks.pre_launch =
-                        Some(quoter.join(pre_launch.split(' ')).unwrap())
+                    self.hooks.pre_launch = Some(quoter.join(pre_launch.split(' ')).unwrap())
                 }
 
                 // Previously treated as complete path to command
                 if let Some(wrapper) = self.hooks.wrapper.as_ref() {
-                    self.hooks.wrapper =
-                        Some(quoter.quote(wrapper).unwrap().to_string())
+                    self.hooks.wrapper = Some(quoter.quote(wrapper).unwrap().to_string())
                 }
 
                 // Previously split by spaces
                 if let Some(post_exit) = self.hooks.post_exit.as_ref() {
-                    self.hooks.post_exit =
-                        Some(quoter.join(post_exit.split(' ')).unwrap())
+                    self.hooks.post_exit = Some(quoter.join(post_exit.split(' ')).unwrap())
                 }
 
-                self.launcher_feature_version =
-                    LauncherFeatureVersion::MigratedLaunchHooks;
+                self.launcher_feature_version = LauncherFeatureVersion::MigratedLaunchHooks;
             }
-            LauncherFeatureVersion::MOST_RECENT => unreachable!(
-                "LauncherFeatureVersion::MOST_RECENT was not updated"
-            ),
+            LauncherFeatureVersion::MOST_RECENT => {
+                unreachable!("LauncherFeatureVersion::MOST_RECENT was not updated")
+            }
         }
         Ok(())
     }
@@ -834,27 +800,12 @@ impl Profile {
         let log_time = io::metadata(&log_file.path()).await?.created()?.into();
         if file_name == "latest.log" {
             let file = io::open_file(&log_file.path()).await?;
-            Self::parse_open_log_file(
-                file,
-                should_skip,
-                log_time,
-                state,
-                join_entry,
-            )
-            .await
+            Self::parse_open_log_file(file, should_skip, log_time, state, join_entry).await
         } else if file_name.ends_with(".log.gz") {
             let file = io::open_file(&log_file.path()).await?;
             let file = tokio::io::BufReader::new(file);
-            let file =
-                async_compression::tokio::bufread::GzipDecoder::new(file);
-            Self::parse_open_log_file(
-                file,
-                should_skip,
-                log_time,
-                state,
-                join_entry,
-            )
-            .await
+            let file = async_compression::tokio::bufread::GzipDecoder::new(file);
+            Self::parse_open_log_file(file, should_skip, log_time, state, join_entry).await
         } else {
             Ok(())
         }
@@ -926,19 +877,14 @@ impl Profile {
             let path = path.join(folder);
 
             if path.exists() {
-                for subdirectory in std::fs::read_dir(&path)
-                    .map_err(|e| io::IOError::with_path(e, &path))?
+                for subdirectory in
+                    std::fs::read_dir(&path).map_err(|e| io::IOError::with_path(e, &path))?
                 {
-                    let subdirectory =
-                        subdirectory.map_err(io::IOError::from)?.path();
+                    let subdirectory = subdirectory.map_err(io::IOError::from)?.path();
                     if subdirectory.is_file()
-                        && let Some(file_name) =
-                            subdirectory.file_name().and_then(|x| x.to_str())
+                        && let Some(file_name) = subdirectory.file_name().and_then(|x| x.to_str())
                     {
-                        let file_size = subdirectory
-                            .metadata()
-                            .map_err(io::IOError::from)?
-                            .len();
+                        let file_size = subdirectory.metadata().map_err(io::IOError::from)?.len();
 
                         keys.push(InitialScanFile {
                             path: format!(
@@ -949,10 +895,7 @@ impl Profile {
                             file_name: file_name.to_string(),
                             project_type,
                             size: file_size,
-                            cache_key: format!(
-                                "{file_size}-{}/{folder}/{file_name}",
-                                self.path
-                            ),
+                            cache_key: format!("{file_size}-{}/{folder}/{file_name}", self.path),
                         });
                     }
                 }
@@ -972,17 +915,10 @@ impl Profile {
             .map(|x| Self::get_cache_key(x, self))
             .collect::<Vec<_>>();
 
-        let file_hashes_ref =
-            file_hashes.iter().map(|x| &*x.hash).collect::<Vec<_>>();
-        let file_updates_ref =
-            file_updates.iter().map(|x| &**x).collect::<Vec<_>>();
+        let file_hashes_ref = file_hashes.iter().map(|x| &*x.hash).collect::<Vec<_>>();
+        let file_updates_ref = file_updates.iter().map(|x| &**x).collect::<Vec<_>>();
         let (mut file_info, file_updates) = tokio::try_join!(
-            CachedEntry::get_file_many(
-                &file_hashes_ref,
-                cache_behaviour,
-                pool,
-                fetch_semaphore,
-            ),
+            CachedEntry::get_file_many(&file_hashes_ref, cache_behaviour, pool, fetch_semaphore,),
             CachedEntry::get_file_update_many(
                 &file_updates_ref,
                 cache_behaviour,
@@ -1065,18 +1001,16 @@ impl Profile {
         fetch_semaphore: &FetchSemaphore,
         io_semaphore: &IoSemaphore,
     ) -> crate::modrinth::Result<String> {
-        let version =
-            CachedEntry::get_version(version_id, None, pool, fetch_semaphore)
-                .await?
-                .ok_or_else(|| {
-                    crate::modrinth::ErrorKind::InputError(format!(
-                        "Unable to install version id {version_id}. Not found."
-                    ))
-                    .as_error()
-                })?;
+        let version = CachedEntry::get_version(version_id, None, pool, fetch_semaphore)
+            .await?
+            .ok_or_else(|| {
+                crate::modrinth::ErrorKind::InputError(format!(
+                    "Unable to install version id {version_id}. Not found."
+                ))
+                .as_error()
+            })?;
 
-        let file = if let Some(file) = version.files.iter().find(|x| x.primary)
-        {
+        let file = if let Some(file) = version.files.iter().find(|x| x.primary) {
             file
         } else if let Some(file) = version.files.first() {
             file
@@ -1154,8 +1088,7 @@ impl Profile {
         };
 
         let path = crate::modrinth::api::profile::get_full_path(profile_path).await?;
-        let project_path =
-            format!("{}/{}", project_type.get_folder(), file_name);
+        let project_path = format!("{}/{}", project_type.get_folder(), file_name);
 
         cache_file_hash(
             bytes.clone(),
@@ -1167,8 +1100,7 @@ impl Profile {
         )
         .await?;
 
-        util::fetch::write(&path.join(&project_path), &bytes, io_semaphore)
-            .await?;
+        util::fetch::write(&path.join(&project_path), &bytes, io_semaphore).await?;
 
         Ok(project_path)
     }
@@ -1187,8 +1119,7 @@ impl Profile {
             format!("{project_path}.disabled")
         };
 
-        io::rename_or_move(&path.join(project_path), &path.join(&new_path))
-            .await?;
+        io::rename_or_move(&path.join(project_path), &path.join(&new_path)).await?;
 
         Ok(new_path)
     }
@@ -1198,8 +1129,7 @@ impl Profile {
         profile_path: &str,
         project_path: &str,
     ) -> crate::modrinth::Result<()> {
-        if let Ok(path) = crate::modrinth::api::profile::get_full_path(profile_path).await
-        {
+        if let Ok(path) = crate::modrinth::api::profile::get_full_path(profile_path).await {
             io::remove_file(path.join(project_path)).await?;
         }
 

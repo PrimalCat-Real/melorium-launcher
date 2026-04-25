@@ -19,9 +19,7 @@ pub async fn tcp_listen_any_loopback() -> io::Result<TcpListener> {
 
 #[cfg(windows)]
 pub async fn is_network_metered() -> Result<bool> {
-    use windows::Networking::Connectivity::{
-        NetworkCostType, NetworkInformation,
-    };
+    use windows::Networking::Connectivity::{NetworkCostType, NetworkInformation};
 
     let cost_type = NetworkInformation::GetInternetConnectionProfile()?
         .GetConnectionCost()?
@@ -60,10 +58,7 @@ pub async fn is_network_metered() -> Result<bool> {
     monitor.cancel();
 
     result.ok_or_else(|| {
-        ErrorKind::OtherError(
-            "NWPathMonitor didn't provide an NWPath in time".to_string(),
-        )
-        .into()
+        ErrorKind::OtherError("NWPathMonitor didn't provide an NWPath in time".to_string()).into()
     })
 }
 
@@ -86,8 +81,6 @@ pub async fn is_network_metered() -> Result<bool> {
 
 #[cfg(not(any(windows, target_os = "macos", target_os = "linux")))]
 pub async fn is_network_metered() -> Result<bool> {
-    tracing::warn!(
-        "is_network_metered called on unsupported platform. Assuming unmetered."
-    );
+    tracing::warn!("is_network_metered called on unsupported platform. Assuming unmetered.");
     Ok(false)
 }

@@ -22,9 +22,7 @@ pub fn start_logger(_app_identifier: &str) -> Option<()> {
     use tracing_subscriber::prelude::*;
 
     let filter = tracing_subscriber::EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| {
-            tracing_subscriber::EnvFilter::new("theseus=info,theseus_gui=info")
-        });
+        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("theseus=info,theseus_gui=info"));
     tracing_subscriber::registry()
         .with(tracing_subscriber::fmt::layer())
         .with(filter)
@@ -44,17 +42,14 @@ pub fn start_logger(app_identifier: &str) -> Option<()> {
     use tracing_subscriber::prelude::*;
 
     // Initialize and get logs directory path
-    let logs_dir = if let Some(d) =
-        DirectoryInfo::launcher_logs_dir_path(app_identifier)
-    {
+    let logs_dir = if let Some(d) = DirectoryInfo::launcher_logs_dir_path(app_identifier) {
         d
     } else {
         eprintln!("Could not start logger");
         return None;
     };
 
-    let log_file_name =
-        format!("session_{}.log", Local::now().format("%Y%m%d_%H%M%S"));
+    let log_file_name = format!("session_{}.log", Local::now().format("%Y%m%d_%H%M%S"));
     let log_file_path = logs_dir.join(log_file_name);
 
     if let Err(err) = std::fs::create_dir_all(&logs_dir) {

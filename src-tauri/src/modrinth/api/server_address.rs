@@ -20,8 +20,7 @@ impl ServerAddress {
         match self {
             Self::Unresolved(address) => {
                 let (host, port) = parse_server_address(address)?;
-                let (resolved_host, resolved_port) =
-                    resolve_server_address(host, port).await?;
+                let (resolved_host, resolved_port) = resolve_server_address(host, port).await?;
                 *self = Self::Resolved {
                     original_host: if host.len() == address.len() {
                         mem::take(address)
@@ -73,14 +72,11 @@ impl Display for ServerAddress {
 }
 
 pub fn parse_server_address(address: &str) -> Result<(&str, u16)> {
-    parse_server_address_inner(address)
-        .map_err(|e| Error::from(ErrorKind::InputError(e)))
+    parse_server_address_inner(address).map_err(|e| Error::from(ErrorKind::InputError(e)))
 }
 
 // Reimplementation of Guava's HostAndPort#fromString with a default port of 25565
-fn parse_server_address_inner(
-    address: &str,
-) -> std::result::Result<(&str, u16), String> {
+fn parse_server_address_inner(address: &str) -> std::result::Result<(&str, u16), String> {
     let (host, port_str) = if address.starts_with("[") {
         let colon_index = address.find(':');
         let close_bracket_index = address.rfind(']');
@@ -93,9 +89,7 @@ fn parse_server_address_inner(
         if close_bracket_index + 1 == address.len() {
             (host, "")
         } else {
-            if address.as_bytes().get(close_bracket_index).copied()
-                != Some(b':')
-            {
+            if address.as_bytes().get(close_bracket_index).copied() != Some(b':') {
                 return Err(format!(
                     "Only a colon may follow a close bracket: {address}"
                 ));
@@ -131,16 +125,10 @@ fn parse_server_address_inner(
     Ok((host, port.unwrap_or(25565)))
 }
 
-pub async fn resolve_server_address(
-    host: &str,
-    port: u16,
-) -> Result<(String, u16)> {
+pub async fn resolve_server_address(host: &str, port: u16) -> Result<(String, u16)> {
     static SIMULTANEOUS_DNS_QUERIES: Semaphore = Semaphore::const_new(24);
 
-    if port != 25565
-        || host.parse::<Ipv4Addr>().is_ok()
-        || host.parse::<Ipv6Addr>().is_ok()
-    {
+    if port != 25565 || host.parse::<Ipv4Addr>().is_ok() || host.parse::<Ipv6Addr>().is_ok() {
         return Ok((host.to_owned(), port));
     }
 

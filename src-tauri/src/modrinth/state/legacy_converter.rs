@@ -3,11 +3,10 @@ use crate::modrinth::jre::check_jre;
 use crate::modrinth::prelude::ModLoader;
 use crate::modrinth::state;
 use crate::modrinth::state::{
-    CacheValue, CachedEntry, CachedFile, CachedFileHash, CachedFileUpdate,
-    Credentials, DefaultPage, DependencyType, DeviceToken, DeviceTokenKey,
-    DeviceTokenPair, FileType, Hooks, LauncherFeatureVersion, LinkedData,
-    MemorySettings, ModrinthCredentials, Profile, ProfileInstallStage,
-    TeamMember, Theme, VersionFile, WindowSize,
+    CacheValue, CachedEntry, CachedFile, CachedFileHash, CachedFileUpdate, Credentials,
+    DefaultPage, DependencyType, DeviceToken, DeviceTokenKey, DeviceTokenPair, FileType, Hooks,
+    LauncherFeatureVersion, LinkedData, MemorySettings, ModrinthCredentials, Profile,
+    ProfileInstallStage, TeamMember, Theme, VersionFile, WindowSize,
 };
 use crate::modrinth::util::fetch::{IoSemaphore, read_json};
 use chrono::{DateTime, Utc};
@@ -39,12 +38,9 @@ where
     let io_semaphore = IoSemaphore(Semaphore::new(10));
     let settings_path = old_launcher_root.join("settings.json");
 
-    if let Ok(legacy_settings) =
-        read_json::<LegacySettings>(&settings_path, &io_semaphore).await
-    {
+    if let Ok(legacy_settings) = read_json::<LegacySettings>(&settings_path, &io_semaphore).await {
         settings.max_concurrent_writes = legacy_settings.max_concurrent_writes;
-        settings.max_concurrent_downloads =
-            legacy_settings.max_concurrent_downloads;
+        settings.max_concurrent_downloads = legacy_settings.max_concurrent_downloads;
         settings.theme = match legacy_settings.theme {
             LegacyTheme::Dark => Theme::Dark,
             LegacyTheme::Light => Theme::Light,
@@ -84,20 +80,14 @@ where
         settings.prev_custom_dir = Some(old_launcher_root_str.clone());
 
         for (_, legacy_version) in legacy_settings.java_globals.0 {
-            if let Ok(java_version) =
-                check_jre(PathBuf::from(legacy_version.path)).await
-            {
+            if let Ok(java_version) = check_jre(PathBuf::from(legacy_version.path)).await {
                 java_version.upsert(exec).await?;
             }
         }
 
-        let modrinth_auth_path =
-            old_launcher_root.join("caches/metadata/auth.json");
-        if let Ok(creds) = read_json::<LegacyModrinthCredentials>(
-            &modrinth_auth_path,
-            &io_semaphore,
-        )
-        .await
+        let modrinth_auth_path = old_launcher_root.join("caches/metadata/auth.json");
+        if let Ok(creds) =
+            read_json::<LegacyModrinthCredentials>(&modrinth_auth_path, &io_semaphore).await
         {
             ModrinthCredentials {
                 session: creds.session,
@@ -109,13 +99,9 @@ where
             .await?;
         }
 
-        let minecraft_auth_path =
-            old_launcher_root.join("caches/metadata/minecraft_auth.json");
-        if let Ok(minecraft_auth) = read_json::<LegacyMinecraftAuthStore>(
-            &minecraft_auth_path,
-            &io_semaphore,
-        )
-        .await
+        let minecraft_auth_path = old_launcher_root.join("caches/metadata/minecraft_auth.json");
+        if let Ok(minecraft_auth) =
+            read_json::<LegacyMinecraftAuthStore>(&minecraft_auth_path, &io_semaphore).await
         {
             let minecraft_users_len = minecraft_auth.users.len();
             for (uuid, legacy_credentials) in minecraft_auth.users {
@@ -128,16 +114,14 @@ where
                     access_token: legacy_credentials.access_token,
                     refresh_token: legacy_credentials.refresh_token,
                     expires: legacy_credentials.expires,
-                    active: minecraft_auth.default_user == Some(uuid)
-                        || minecraft_users_len == 1,
+                    active: minecraft_auth.default_user == Some(uuid) || minecraft_users_len == 1,
                 }
                 .upsert(exec)
                 .await?;
             }
 
             if let Some(device_token) = minecraft_auth.token
-                && let Ok(private_key) =
-                    SigningKey::from_pkcs8_pem(&device_token.private_key)
+                && let Ok(private_key) = SigningKey::from_pkcs8_pem(&device_token.private_key)
                 && let Ok(uuid) = Uuid::parse_str(&device_token.id)
             {
                 DeviceTokenPair {
@@ -175,9 +159,7 @@ where
 
                 let profile_path = entry.path().join("profile.json");
 
-                let Ok(profile) =
-                    read_json::<LegacyProfile>(&profile_path, &io_semaphore)
-                        .await
+                let Ok(profile) = read_json::<LegacyProfile>(&profile_path, &io_semaphore).await
                 else {
                     continue;
                 };
@@ -212,21 +194,15 @@ where
                             let file_name = format!(
                                 "{}/{}",
                                 profile.path,
-                                path.replace('\\', "/")
-                                    .replace(".disabled", "")
+                                path.replace('\\', "/").replace(".disabled", "")
                             );
 
-                            cached_entries.push(CacheValue::FileHash(
-                                CachedFileHash {
-                                    path: file_name,
-                                    size: metadata.len(),
-                                    hash: sha1.clone(),
-                                    project_type:
-                                        ProjectType::get_from_parent_folder(
-                                            &full_path,
-                                        ),
-                                },
-                            ));
+                            cached_entries.push(CacheValue::FileHash(CachedFileHash {
+                                path: file_name,
+                                size: metadata.len(),
+                                hash: sha1.clone(),
+                                project_type: ProjectType::get_from_parent_folder(&full_path),
+                            }));
                         }
 
                         cached_entries.push(CacheValue::File(CachedFile {
@@ -236,27 +212,15 @@ where
                         }));
 
                         if let Some(update_version) = update_version {
-                            let mod_loader: ModLoader =
-                                profile.metadata.loader.into();
-                            cached_entries.push(CacheValue::FileUpdate(
-                                CachedFileUpdate {
-                                    hash: sha1.clone(),
-                                    game_version: profile
-                                        .metadata
-                                        .game_version
-                                        .clone(),
-                                    loaders: vec![
-                                        mod_loader.as_str().to_string(),
-                                    ],
-                                    update_version_id: update_version
-                                        .id
-                                        .clone(),
-                                },
-                            ));
+                            let mod_loader: ModLoader = profile.metadata.loader.into();
+                            cached_entries.push(CacheValue::FileUpdate(CachedFileUpdate {
+                                hash: sha1.clone(),
+                                game_version: profile.metadata.game_version.clone(),
+                                loaders: vec![mod_loader.as_str().to_string()],
+                                update_version_id: update_version.id.clone(),
+                            }));
 
-                            cached_entries.push(CacheValue::Version(
-                                (*update_version).into(),
-                            ));
+                            cached_entries.push(CacheValue::Version((*update_version).into()));
                         }
 
                         let members = members
@@ -272,8 +236,7 @@ where
                                     badges: 0,
                                 };
 
-                                cached_entries
-                                    .push(CacheValue::User(user.clone()));
+                                cached_entries.push(CacheValue::User(user.clone()));
 
                                 TeamMember {
                                     team_id: x.team_id,
@@ -287,17 +250,14 @@ where
 
                         cached_entries.push(CacheValue::Team(members));
 
-                        cached_entries
-                            .push(CacheValue::Version((*version).into()));
+                        cached_entries.push(CacheValue::Version((*version).into()));
                     }
                 }
 
                 Profile {
                     path: profile.path,
                     install_stage: match profile.install_stage {
-                        LegacyProfileInstallStage::Installed => {
-                            ProfileInstallStage::Installed
-                        }
+                        LegacyProfileInstallStage::Installed => ProfileInstallStage::Installed,
                         LegacyProfileInstallStage::Installing => {
                             ProfileInstallStage::MinecraftInstalling
                         }
@@ -314,10 +274,7 @@ where
                     game_version: profile.metadata.game_version,
                     protocol_version: None,
                     loader: profile.metadata.loader.into(),
-                    loader_version: profile
-                        .metadata
-                        .loader_version
-                        .map(|x| x.id),
+                    loader_version: profile.metadata.loader_version.map(|x| x.id),
                     groups: profile.metadata.groups,
                     linked_data: profile.metadata.linked_data.and_then(|x| {
                         if let Some(project_id) = x.project_id
@@ -336,36 +293,25 @@ where
                     created: profile.metadata.date_created,
                     modified: profile.metadata.date_modified,
                     last_played: profile.metadata.last_played,
-                    submitted_time_played: profile
-                        .metadata
-                        .submitted_time_played,
+                    submitted_time_played: profile.metadata.submitted_time_played,
                     recent_time_played: profile.metadata.recent_time_played,
-                    java_path: profile.java.as_ref().and_then(|x| {
-                        x.override_version.clone().map(|x| x.path)
-                    }),
+                    java_path: profile
+                        .java
+                        .as_ref()
+                        .and_then(|x| x.override_version.clone().map(|x| x.path)),
                     extra_launch_args: profile
                         .java
                         .as_ref()
                         .and_then(|x| x.extra_arguments.clone()),
-                    custom_env_vars: profile
-                        .java
-                        .and_then(|x| x.custom_env_args),
+                    custom_env_vars: profile.java.and_then(|x| x.custom_env_args),
                     memory: profile
                         .memory
                         .map(|x| MemorySettings { maximum: x.maximum }),
                     force_fullscreen: profile.fullscreen,
-                    game_resolution: profile
-                        .resolution
-                        .map(|x| WindowSize(x.0, x.1)),
+                    game_resolution: profile.resolution.map(|x| WindowSize(x.0, x.1)),
                     hooks: Hooks {
-                        pre_launch: profile
-                            .hooks
-                            .as_ref()
-                            .and_then(|x| x.pre_launch.clone()),
-                        wrapper: profile
-                            .hooks
-                            .as_ref()
-                            .and_then(|x| x.wrapper.clone()),
+                        pre_launch: profile.hooks.as_ref().and_then(|x| x.pre_launch.clone()),
+                        wrapper: profile.hooks.as_ref().and_then(|x| x.wrapper.clone()),
                         post_exit: profile.hooks.and_then(|x| x.post_exit),
                     },
                 }
@@ -379,8 +325,7 @@ where
                 .into_iter()
                 .map(|x| {
                     let mut entry = x.get_entry();
-                    entry.expires =
-                        Utc::now().timestamp() - entry.type_.expiry();
+                    entry.expires = Utc::now().timestamp() - entry.type_.expiry();
                     entry
                 })
                 .collect::<Vec<_>>(),
@@ -637,12 +582,8 @@ impl From<LegacyModrinthVersion> for Version {
                     primary: x.primary,
                     size: x.size,
                     file_type: x.file_type.map(|x| match x {
-                        LegacyFileType::RequiredResourcePack => {
-                            FileType::RequiredResourcePack
-                        }
-                        LegacyFileType::OptionalResourcePack => {
-                            FileType::OptionalResourcePack
-                        }
+                        LegacyFileType::RequiredResourcePack => FileType::RequiredResourcePack,
+                        LegacyFileType::OptionalResourcePack => FileType::OptionalResourcePack,
                         LegacyFileType::Unknown => FileType::Unknown,
                     }),
                 })
@@ -655,18 +596,10 @@ impl From<LegacyModrinthVersion> for Version {
                     project_id: x.project_id,
                     file_name: x.file_name,
                     dependency_type: match x.dependency_type {
-                        LegacyDependencyType::Required => {
-                            DependencyType::Required
-                        }
-                        LegacyDependencyType::Optional => {
-                            DependencyType::Optional
-                        }
-                        LegacyDependencyType::Incompatible => {
-                            DependencyType::Incompatible
-                        }
-                        LegacyDependencyType::Embedded => {
-                            DependencyType::Embedded
-                        }
+                        LegacyDependencyType::Required => DependencyType::Required,
+                        LegacyDependencyType::Optional => DependencyType::Optional,
+                        LegacyDependencyType::Incompatible => DependencyType::Incompatible,
+                        LegacyDependencyType::Embedded => DependencyType::Embedded,
                     },
                 })
                 .collect::<Vec<_>>(),

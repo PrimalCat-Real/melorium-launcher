@@ -48,22 +48,19 @@ impl ProcessManager {
         xml_logging: bool,
         main_class_keep_alive: TempDir,
         rpc_server: RpcServer,
-        post_process_init: impl AsyncFnOnce(
-            &ProcessMetadata,
-            &RpcServer,
-        ) -> crate::modrinth::Result<()>,
+        post_process_init: impl AsyncFnOnce(&ProcessMetadata, &RpcServer) -> crate::modrinth::Result<()>,
     ) -> crate::modrinth::Result<ProcessMetadata> {
         mc_command.stdout(std::process::Stdio::piped());
         mc_command.stderr(std::process::Stdio::piped());
         mc_command.stdin(std::process::Stdio::piped());
 
         tracing::info!("Attempting to spawn Minecraft command: {:?}", mc_command);
-        
+
         let mc_proc_result = mc_command.spawn();
         if let Err(e) = &mc_proc_result {
             tracing::error!("Failed to spawn Minecraft process: {:?}", e);
         }
-        
+
         let mut mc_proc = mc_proc_result.map_err(IOError::from)?;
 
         let stdout = mc_proc.stdout.take();
@@ -116,13 +113,7 @@ impl ProcessManager {
 
             let profile_path = metadata.profile_path.clone();
             tokio::spawn(async move {
-                Process::process_output(
-                    &profile_path,
-                    stdout,
-                    log_path_clone,
-                    xml_logging,
-                )
-                .await;
+                Process::process_output(&profile_path, stdout, log_path_clone, xml_logging).await;
             });
         }
 
@@ -131,23 +122,23 @@ impl ProcessManager {
 
             let profile_path = metadata.profile_path.clone();
             tokio::spawn(async move {
-                Process::process_output(
-                    &profile_path,
-                    stderr,
-                    log_path_clone,
-                    xml_logging,
-                )
-                .await;
+                Process::process_output(&profile_path, stderr, log_path_clone, xml_logging).await;
             });
         }
 
         let post_init_future = post_process_init(&process.metadata, &process.rpc_server);
-        let post_init_result = tokio::time::timeout(std::time::Duration::from_secs(15), post_init_future).await;
+        let post_init_result =
+            tokio::time::timeout(std::time::Duration::from_secs(15), post_init_future).await;
 
         if let Err(_) = post_init_result {
-            tracing::error!("Failed to run post-process init: Timed out waiting for RPC connection");
+            tracing::error!(
+                "Failed to run post-process init: Timed out waiting for RPC connection"
+            );
             let _ = process.child.kill().await;
-            return Err(crate::modrinth::ErrorKind::LauncherError("Timed out waiting for Minecraft to start communicating".to_string()).into());
+            return Err(crate::modrinth::ErrorKind::LauncherError(
+                "Timed out waiting for Minecraft to start communicating".to_string(),
+            )
+            .into());
         }
 
         if let Ok(Err(e)) = post_init_result {
@@ -190,10 +181,7 @@ impl ProcessManager {
             .collect()
     }
 
-    pub fn try_wait(
-        &self,
-        id: Uuid,
-    ) -> crate::modrinth::Result<Option<Option<ExitStatus>>> {
+    pub fn try_wait(&self, id: Uuid) -> crate::modrinth::Result<Option<Option<ExitStatus>>> {
         if let Some(mut process) = self.processes.get_mut(&id) {
             Ok(Some(process.child.try_wait()?))
         } else {
@@ -270,11 +258,7 @@ impl Process {
             loop {
                 match reader.read_event_into_async(&mut buf).await {
                     Err(e) => {
-                        tracing::error!(
-                            "Error at position {}: {:?}",
-                            reader.buffer_position(),
-                            e
-                        );
+                        tracing::error!("Error at position {}: {:?}", reader.buffer_position(), e);
                         break;
                     }
                     // exits the loop when reaching end of file
@@ -289,28 +273,15 @@ impl Process {
 
                                 // Extract attributes
                                 for attr in e.attributes().flatten() {
-                                    let key = String::from_utf8_lossy(
-                                        attr.key.into_inner(),
-                                    )
-                                    .to_string();
-                                    let value =
-                                        String::from_utf8_lossy(&attr.value)
-                                            .to_string();
+                                    let key =
+                                        String::from_utf8_lossy(attr.key.into_inner()).to_string();
+                                    let value = String::from_utf8_lossy(&attr.value).to_string();
 
                                     match key.as_str() {
-                                        "logger" => {
-                                            current_event.logger = Some(value)
-                                        }
-                                        "level" => {
-                                            current_event.level = Some(value)
-                                        }
-                                        "thread" => {
-                                            current_event.thread = Some(value)
-                                        }
-                                        "timestamp" => {
-                                            current_event.timestamp =
-                                                Some(value)
-                                        }
+                                        "logger" => current_event.logger = Some(value),
+                                        "level" => current_event.level = Some(value),
+                                        "thread" => current_event.thread = Some(value),
+                                        "timestamp" => current_event.timestamp = Some(value),
                                         _ => {}
                                     }
                                 }
@@ -330,30 +301,19 @@ impl Process {
                         match e.name().as_ref() {
                             b"log4j:Message" => {
                                 in_message = false;
-                                current_event.message =
-                                    Some(current_content.clone());
+                                current_event.message = Some(current_content.clone());
                             }
                             b"log4j:Throwable" => {
                                 in_throwable = false;
                                 // Process and write the log entry
-                                let thread = current_event
-                                    .thread
-                                    .as_deref()
-                                    .unwrap_or("");
-                                let level = current_event
-                                    .level
-                                    .as_deref()
-                                    .unwrap_or("");
-                                let logger = current_event
-                                    .logger
-                                    .as_deref()
-                                    .unwrap_or("");
+                                let thread = current_event.thread.as_deref().unwrap_or("");
+                                let level = current_event.level.as_deref().unwrap_or("");
+                                let logger = current_event.logger.as_deref().unwrap_or("");
 
                                 if let Some(message) = &current_event.message {
-                                    let formatted_time =
-                                        Process::format_timestamp(
-                                            current_event.timestamp.as_deref(),
-                                        );
+                                    let formatted_time = Process::format_timestamp(
+                                        current_event.timestamp.as_deref(),
+                                    );
                                     let formatted_log = format!(
                                         "{} [{}] [{}{}]: {}\n",
                                         formatted_time,
@@ -368,23 +328,16 @@ impl Process {
                                     );
 
                                     // Write the log message
-                                    if let Err(e) = Process::append_to_log_file(
-                                        &log_path,
-                                        &formatted_log,
-                                    ) {
-                                        tracing::error!(
-                                            "Failed to write to log file: {}",
-                                            e
-                                        );
+                                    if let Err(e) =
+                                        Process::append_to_log_file(&log_path, &formatted_log)
+                                    {
+                                        tracing::error!("Failed to write to log file: {}", e);
                                     }
 
                                     // Write the throwable if present
                                     if !current_content.is_empty()
                                         && let Err(e) =
-                                            Process::append_to_log_file(
-                                                &log_path,
-                                                &current_content,
-                                            )
+                                            Process::append_to_log_file(&log_path, &current_content)
                                     {
                                         tracing::error!(
                                             "Failed to write throwable to log file: {}",
@@ -396,31 +349,16 @@ impl Process {
                             b"log4j:Event" => {
                                 in_event = false;
                                 // If no throwable was present, write the log entry at the end of the event
-                                if current_event.message.is_some()
-                                    && !in_throwable
-                                {
-                                    let thread = current_event
-                                        .thread
-                                        .as_deref()
-                                        .unwrap_or("");
-                                    let level = current_event
-                                        .level
-                                        .as_deref()
-                                        .unwrap_or("");
-                                    let logger = current_event
-                                        .logger
-                                        .as_deref()
-                                        .unwrap_or("");
-                                    let message = current_event
-                                        .message
-                                        .as_deref()
-                                        .unwrap_or("")
-                                        .trim();
+                                if current_event.message.is_some() && !in_throwable {
+                                    let thread = current_event.thread.as_deref().unwrap_or("");
+                                    let level = current_event.level.as_deref().unwrap_or("");
+                                    let logger = current_event.logger.as_deref().unwrap_or("");
+                                    let message =
+                                        current_event.message.as_deref().unwrap_or("").trim();
 
-                                    let formatted_time =
-                                        Process::format_timestamp(
-                                            current_event.timestamp.as_deref(),
-                                        );
+                                    let formatted_time = Process::format_timestamp(
+                                        current_event.timestamp.as_deref(),
+                                    );
                                     let formatted_log = format!(
                                         "{} [{}] [{}{}]: {}\n",
                                         formatted_time,
@@ -435,25 +373,24 @@ impl Process {
                                     );
 
                                     // Write the log message
-                                    if let Err(e) = Process::append_to_log_file(
-                                        &log_path,
-                                        &formatted_log,
-                                    ) {
-                                        tracing::error!(
-                                            "Failed to write to log file: {}",
-                                            e
-                                        );
+                                    if let Err(e) =
+                                        Process::append_to_log_file(&log_path, &formatted_log)
+                                    {
+                                        tracing::error!("Failed to write to log file: {}", e);
                                     }
 
-                                    if let Some(timestamp) =
-                                        current_event.timestamp.as_deref()
+                                    if let Some(timestamp) = current_event.timestamp.as_deref()
                                         && let Err(e) = Self::maybe_handle_server_join_logging(
                                             profile_path,
                                             timestamp,
-                                            message
-                                        ).await {
-                                            tracing::error!("Failed to handle server join logging: {e}");
-                                        }
+                                            message,
+                                        )
+                                        .await
+                                    {
+                                        tracing::error!(
+                                            "Failed to handle server join logging: {e}"
+                                        );
+                                    }
                                 }
                             }
                             _ => {}
@@ -468,15 +405,10 @@ impl Process {
                             && !e.inplace_trim_end()
                             && !e.inplace_trim_start()
                             && let Ok(text) = e.xml_content()
-                            && let Err(e) = Process::append_to_log_file(
-                                &log_path,
-                                &format!("{text}\n"),
-                            )
+                            && let Err(e) =
+                                Process::append_to_log_file(&log_path, &format!("{text}\n"))
                         {
-                            tracing::error!(
-                                "Failed to write to log file: {}",
-                                e
-                            );
+                            tracing::error!("Failed to write to log file: {}", e);
                         }
                     }
                     Ok(Event::CData(e)) => {
@@ -509,9 +441,7 @@ impl Process {
                     )
                     .await
                     {
-                        tracing::error!(
-                            "Failed to handle old server join logging: {e}"
-                        );
+                        tracing::error!("Failed to handle old server join logging: {e}");
                     }
                 }
 
@@ -527,11 +457,9 @@ impl Process {
                     let secs = timestamp_val / 1000;
                     let nsecs = ((timestamp_val % 1000) * 1_000_000) as u32;
 
-                    chrono::DateTime::<Utc>::from_timestamp(secs, nsecs)
-                        .unwrap_or_default()
+                    chrono::DateTime::<Utc>::from_timestamp(secs, nsecs).unwrap_or_default()
                 } else {
-                    chrono::DateTime::<Utc>::from_timestamp_secs(timestamp_val)
-                        .unwrap_or_default()
+                    chrono::DateTime::<Utc>::from_timestamp_secs(timestamp_val).unwrap_or_default()
                 };
 
                 let datetime_local = datetime_utc.with_timezone(&chrono::Local);
@@ -544,12 +472,8 @@ impl Process {
         }
     }
 
-    fn append_to_log_file(
-        path: impl AsRef<Path>,
-        line: &str,
-    ) -> std::io::Result<()> {
-        let mut file =
-            OpenOptions::new().append(true).create(true).open(path)?;
+    fn append_to_log_file(path: impl AsRef<Path>, line: &str) -> std::io::Result<()> {
+        let mut file = OpenOptions::new().append(true).create(true).open(path)?;
 
         file.write_all(line.as_bytes())?;
         Ok(())
@@ -564,9 +488,7 @@ impl Process {
             .parse::<i64>()
             .map(|x| x / 1000)
             .map_err(|x| {
-                crate::modrinth::ErrorKind::OtherError(format!(
-                    "Failed to parse timestamp: {x}"
-                ))
+                crate::modrinth::ErrorKind::OtherError(format!("Failed to parse timestamp: {x}"))
             })
             .and_then(|x| {
                 Utc.timestamp_opt(x, 0).single().ok_or_else(|| {
@@ -575,27 +497,22 @@ impl Process {
                     )
                 })
             })?;
-        Self::parse_and_insert_server_join(profile_path, message, timestamp)
-            .await
+        Self::parse_and_insert_server_join(profile_path, message, timestamp).await
     }
 
     async fn maybe_handle_old_server_join_logging(
         profile_path: &str,
         line: &str,
     ) -> crate::modrinth::Result<()> {
-        if let Some((timestamp, message)) = line.split_once(" [CLIENT] [INFO] ")
-        {
-            let timestamp =
-                NaiveDateTime::parse_from_str(timestamp, "%Y-%m-%d %H:%M:%S")?
-                    .and_local_timezone(chrono::Local)
-                    .map(|x| x.to_utc())
-                    .single()
-                    .unwrap_or_else(Utc::now);
-            Self::parse_and_insert_server_join(profile_path, message, timestamp)
-                .await
+        if let Some((timestamp, message)) = line.split_once(" [CLIENT] [INFO] ") {
+            let timestamp = NaiveDateTime::parse_from_str(timestamp, "%Y-%m-%d %H:%M:%S")?
+                .and_local_timezone(chrono::Local)
+                .map(|x| x.to_utc())
+                .single()
+                .unwrap_or_else(Utc::now);
+            Self::parse_and_insert_server_join(profile_path, message, timestamp).await
         } else {
-            Self::parse_and_insert_server_join(profile_path, line, Utc::now())
-                .await
+            Self::parse_and_insert_server_join(profile_path, line, Utc::now()).await
         }
     }
 
@@ -604,12 +521,10 @@ impl Process {
         message: &str,
         timestamp: DateTime<Utc>,
     ) -> crate::modrinth::Result<()> {
-        let Some(host_port_string) = message.strip_prefix("Connecting to ")
-        else {
+        let Some(host_port_string) = message.strip_prefix("Connecting to ") else {
             return Ok(());
         };
-        let Some((host, port_string)) = host_port_string.rsplit_once(", ")
-        else {
+        let Some((host, port_string)) = host_port_string.rsplit_once(", ") else {
             return Ok(());
         };
         let Some(port) = port_string.parse::<u16>().ok() else {
@@ -697,8 +612,7 @@ impl Process {
             tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
 
             // Auto-update playtime every minute
-            update_playtime(&mut last_updated_playtime, &profile_path, false)
-                .await;
+            update_playtime(&mut last_updated_playtime, &profile_path, false).await;
         }
 
         state.process_manager.remove(uuid);
@@ -719,11 +633,7 @@ impl Process {
         let profile = profile_path.clone();
         tokio::spawn(async move {
             if let Err(e) = profile::try_update_playtime(&profile).await {
-                tracing::warn!(
-                    "Failed to update playtime for profile {}: {}",
-                    profile,
-                    e
-                );
+                tracing::warn!("Failed to update playtime for profile {}: {}", profile, e);
             }
         });
 
@@ -767,9 +677,9 @@ impl Process {
 
                 if let Some(command) = cmd.next() {
                     let mut command = Command::new(command);
-                    command.args(cmd).current_dir(
-                        profile::get_full_path(&profile_path).await?,
-                    );
+                    command
+                        .args(cmd)
+                        .current_dir(profile::get_full_path(&profile_path).await?);
                     command.spawn().map_err(IOError::from)?;
                 }
             }

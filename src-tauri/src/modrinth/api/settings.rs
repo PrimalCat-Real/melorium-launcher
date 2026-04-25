@@ -23,9 +23,7 @@ pub async fn set(settings: Settings) -> crate::modrinth::Result<()> {
 }
 
 #[tracing::instrument]
-pub async fn cancel_directory_change(
-    app_identifier: &str,
-) -> crate::modrinth::Result<()> {
+pub async fn cancel_directory_change(app_identifier: &str) -> crate::modrinth::Result<()> {
     // This is called to handle state initialization errors due to folder migrations
     // failing, so fetching a DB connection pool from `State::get` is not reliable here
     let pool = crate::modrinth::state::db::connect(app_identifier).await?;

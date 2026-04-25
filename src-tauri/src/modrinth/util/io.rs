@@ -24,10 +24,7 @@ impl IOError {
     pub fn from(source: std::io::Error) -> Self {
         Self::IOError(source)
     }
-    pub fn with_path(
-        source: std::io::Error,
-        path: impl AsRef<std::path::Path>,
-    ) -> Self {
+    pub fn with_path(source: std::io::Error, path: impl AsRef<std::path::Path>) -> Self {
         let path = path.as_ref();
 
         Self::IOPathError {
@@ -44,9 +41,7 @@ impl IOError {
     }
 }
 
-pub fn canonicalize(
-    path: impl AsRef<std::path::Path>,
-) -> Result<std::path::PathBuf, IOError> {
+pub fn canonicalize(path: impl AsRef<std::path::Path>) -> Result<std::path::PathBuf, IOError> {
     let path = path.as_ref();
     dunce::canonicalize(path).map_err(|e| IOError::IOPathError {
         source: e,
@@ -54,9 +49,7 @@ pub fn canonicalize(
     })
 }
 
-pub async fn read_dir(
-    path: impl AsRef<std::path::Path>,
-) -> Result<tokio::fs::ReadDir, IOError> {
+pub async fn read_dir(path: impl AsRef<std::path::Path>) -> Result<tokio::fs::ReadDir, IOError> {
     let path = path.as_ref();
     tokio::fs::read_dir(path)
         .await
@@ -66,9 +59,7 @@ pub async fn read_dir(
         })
 }
 
-pub async fn create_dir(
-    path: impl AsRef<std::path::Path>,
-) -> Result<(), IOError> {
+pub async fn create_dir(path: impl AsRef<std::path::Path>) -> Result<(), IOError> {
     let path = path.as_ref();
     tokio::fs::create_dir(path)
         .await
@@ -78,9 +69,7 @@ pub async fn create_dir(
         })
 }
 
-pub async fn create_dir_all(
-    path: impl AsRef<std::path::Path>,
-) -> Result<(), IOError> {
+pub async fn create_dir_all(path: impl AsRef<std::path::Path>) -> Result<(), IOError> {
     let path = path.as_ref();
     tokio::fs::create_dir_all(path)
         .await
@@ -90,9 +79,7 @@ pub async fn create_dir_all(
         })
 }
 
-pub async fn remove_dir_all(
-    path: impl AsRef<std::path::Path>,
-) -> Result<(), IOError> {
+pub async fn remove_dir_all(path: impl AsRef<std::path::Path>) -> Result<(), IOError> {
     let path = path.as_ref();
     tokio::fs::remove_dir_all(path)
         .await
@@ -114,13 +101,12 @@ pub async fn read_any_encoding_to_string(
     path: impl AsRef<std::path::Path>,
 ) -> Result<(String, &'static encoding_rs::Encoding), IOError> {
     let path = path.as_ref();
-    let file_bytes =
-        tokio::fs::read(path)
-            .await
-            .map_err(|e| IOError::IOPathError {
-                source: e,
-                path: path.to_string_lossy().to_string(),
-            })?;
+    let file_bytes = tokio::fs::read(path)
+        .await
+        .map_err(|e| IOError::IOPathError {
+            source: e,
+            path: path.to_string_lossy().to_string(),
+        })?;
 
     let file_encoding = {
         let mut encoding_detector = chardetng::EncodingDetector::new();
@@ -128,14 +114,11 @@ pub async fn read_any_encoding_to_string(
         encoding_detector.guess(None, true)
     };
 
-    let (file_string, actual_file_encoding, _) =
-        file_encoding.decode(&file_bytes);
+    let (file_string, actual_file_encoding, _) = file_encoding.decode(&file_bytes);
     Ok((file_string.to_string(), actual_file_encoding))
 }
 
-pub async fn read(
-    path: impl AsRef<std::path::Path>,
-) -> Result<Vec<u8>, IOError> {
+pub async fn read(path: impl AsRef<std::path::Path>) -> Result<Vec<u8>, IOError> {
     let path = path.as_ref();
     tokio::fs::read(path)
         .await
@@ -164,16 +147,10 @@ pub async fn write(
     Ok(())
 }
 
-fn sync_write(
-    data: impl AsRef<[u8]>,
-    path: impl AsRef<Path>,
-) -> Result<(), std::io::Error> {
-    let mut tempfile =
-        NamedTempFile::new_in(path.as_ref().parent().ok_or_else(|| {
-            std::io::Error::other(
-                "could not get parent directory for temporary file",
-            )
-        })?)?;
+fn sync_write(data: impl AsRef<[u8]>, path: impl AsRef<Path>) -> Result<(), std::io::Error> {
+    let mut tempfile = NamedTempFile::new_in(path.as_ref().parent().ok_or_else(|| {
+        std::io::Error::other("could not get parent directory for temporary file")
+    })?)?;
     tempfile.write_all(data.as_ref())?;
     let tmp_path = tempfile.into_temp_path();
     let path = path.as_ref();
@@ -197,10 +174,9 @@ pub fn is_same_disk(old_dir: &Path, new_dir: &Path) -> Result<bool, IOError> {
         let new_component = new_dir.components().next();
 
         match (old_component, new_component) {
-            (
-                Some(std::path::Component::Prefix(old)),
-                Some(std::path::Component::Prefix(new)),
-            ) => Ok(old.as_os_str() == new.as_os_str()),
+            (Some(std::path::Component::Prefix(old)), Some(std::path::Component::Prefix(new))) => {
+                Ok(old.as_os_str() == new.as_os_str())
+            }
             _ => Ok(false),
         }
     }
@@ -261,9 +237,7 @@ pub async fn copy(
         })
 }
 
-pub async fn remove_file(
-    path: impl AsRef<std::path::Path>,
-) -> Result<(), IOError> {
+pub async fn remove_file(path: impl AsRef<std::path::Path>) -> Result<(), IOError> {
     let path = path.as_ref();
     tokio::fs::remove_file(path)
         .await
@@ -273,9 +247,7 @@ pub async fn remove_file(
         })
 }
 
-pub async fn open_file(
-    path: impl AsRef<std::path::Path>,
-) -> Result<tokio::fs::File, IOError> {
+pub async fn open_file(path: impl AsRef<std::path::Path>) -> Result<tokio::fs::File, IOError> {
     let path = path.as_ref();
     tokio::fs::File::open(path)
         .await
@@ -285,9 +257,7 @@ pub async fn open_file(
         })
 }
 
-pub async fn remove_dir(
-    path: impl AsRef<std::path::Path>,
-) -> Result<(), IOError> {
+pub async fn remove_dir(path: impl AsRef<std::path::Path>) -> Result<(), IOError> {
     let path = path.as_ref();
     tokio::fs::remove_dir(path)
         .await
@@ -297,9 +267,7 @@ pub async fn remove_dir(
         })
 }
 
-pub async fn metadata(
-    path: impl AsRef<std::path::Path>,
-) -> Result<std::fs::Metadata, IOError> {
+pub async fn metadata(path: impl AsRef<std::path::Path>) -> Result<std::fs::Metadata, IOError> {
     let path = path.as_ref();
     tokio::fs::metadata(path)
         .await

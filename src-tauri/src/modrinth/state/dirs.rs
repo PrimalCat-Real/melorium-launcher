@@ -43,10 +43,9 @@ impl DirectoryInfo {
         config_dir: Option<String>,
         app_identifier: &str,
     ) -> crate::modrinth::Result<Self> {
-        let settings_dir = Self::initial_settings_dir_path(app_identifier)
-            .ok_or(crate::modrinth::ErrorKind::FSError(
-                "Could not find valid settings dir".to_string(),
-            ))?;
+        let settings_dir = Self::initial_settings_dir_path(app_identifier).ok_or(
+            crate::modrinth::ErrorKind::FSError("Could not find valid settings dir".to_string()),
+        )?;
 
         fs::create_dir_all(&settings_dir).await.map_err(|err| {
             crate::modrinth::ErrorKind::FSError(format!(
@@ -54,8 +53,7 @@ impl DirectoryInfo {
             ))
         })?;
 
-        let config_dir =
-            config_dir.map_or_else(|| settings_dir.clone(), PathBuf::from);
+        let config_dir = config_dir.map_or_else(|| settings_dir.clone(), PathBuf::from);
 
         Ok(Self {
             settings_dir,
@@ -174,8 +172,7 @@ impl DirectoryInfo {
 
     #[inline]
     pub fn launcher_logs_dir_path(app_identifier: &str) -> Option<PathBuf> {
-        Self::initial_settings_dir_path(app_identifier)
-            .map(|d| d.join(LAUNCHER_LOGS_FOLDER_NAME))
+        Self::initial_settings_dir_path(app_identifier).map(|d| d.join(LAUNCHER_LOGS_FOLDER_NAME))
     }
 
     /// Get the cache directory for Theseus
@@ -200,10 +197,9 @@ impl DirectoryInfo {
     where
         E: sqlx::Executor<'a, Database = sqlx::Sqlite> + Copy,
     {
-        let app_dir = DirectoryInfo::initial_settings_dir_path(app_identifier)
-            .ok_or(crate::modrinth::ErrorKind::FSError(
-                "Could not find valid config dir".to_string(),
-            ))?;
+        let app_dir = DirectoryInfo::initial_settings_dir_path(app_identifier).ok_or(
+            crate::modrinth::ErrorKind::FSError("Could not find valid config dir".to_string()),
+        )?;
 
         if let Some(ref prev_custom_dir) = settings.prev_custom_dir {
             let prev_dir = PathBuf::from(prev_custom_dir);
@@ -213,9 +209,7 @@ impl DirectoryInfo {
                 .as_ref()
                 .map_or_else(|| app_dir.clone(), PathBuf::from);
 
-            async fn is_dir_writeable(
-                new_config_dir: &Path,
-            ) -> crate::modrinth::Result<bool> {
+            async fn is_dir_writeable(new_config_dir: &Path) -> crate::modrinth::Result<bool> {
                 let temp_path = new_config_dir.join(".tmp");
                 match fs::write(temp_path.clone(), "test").await {
                     Ok(_) => {
@@ -223,10 +217,7 @@ impl DirectoryInfo {
                         Ok(true)
                     }
                     Err(e) => {
-                        tracing::error!(
-                            "Error writing to new config dir: {}",
-                            e
-                        );
+                        tracing::error!("Error writing to new config dir: {}", e);
                         Ok(false)
                     }
                 }
@@ -260,7 +251,11 @@ impl DirectoryInfo {
                 .await?;
 
                 if !is_dir_writeable(&move_dir).await? {
-                    return Err(crate::modrinth::ErrorKind::DirectoryMoveError(format!("Cannot move directory to {}: directory is not writeable", move_dir.display())).into());
+                    return Err(crate::modrinth::ErrorKind::DirectoryMoveError(format!(
+                        "Cannot move directory to {}: directory is not writeable",
+                        move_dir.display()
+                    ))
+                    .into());
                 }
 
                 const MOVE_DIRS: &[&str] = &[
@@ -290,13 +285,11 @@ impl DirectoryInfo {
                     }
 
                     for entry_path in
-                        crate::modrinth::pack::import::get_all_subfiles(source, false)
-                            .await?
+                        crate::modrinth::pack::import::get_all_subfiles(source, false).await?
                     {
                         let relative_path = entry_path.strip_prefix(source)?;
                         let new_path = destination.join(relative_path);
-                        let path_size =
-                            entry_path.metadata().map(|x| x.len()).unwrap_or(0);
+                        let path_size = entry_path.metadata().map(|x| x.len()).unwrap_or(0);
 
                         *total_size += path_size;
 
@@ -321,18 +314,12 @@ impl DirectoryInfo {
                         &mut total_size,
                     )
                     .await?;
-                    emit_loading(
-                        &loader_bar_id,
-                        10.0 / (MOVE_DIRS.len() as f64),
-                        None,
-                    )?;
+                    emit_loading(&loader_bar_id, 10.0 / (MOVE_DIRS.len() as f64), None)?;
                 }
 
                 let paths_len = paths.len();
 
-                if crate::modrinth::util::io::is_same_disk(&prev_dir, &move_dir)
-                    .unwrap_or(false)
-                {
+                if crate::modrinth::util::io::is_same_disk(&prev_dir, &move_dir).unwrap_or(false) {
                     let success_idxs = Arc::new(DashSet::new());
 
                     let loader_bar_id = Arc::new(&loader_bar_id);
@@ -345,38 +332,37 @@ impl DirectoryInfo {
                                 let _permit = io_semaphore.0.acquire().await?;
 
                                 if let Some(parent) = x.new.parent() {
-                                    crate::modrinth::util::io::create_dir_all(parent).await.map_err(|e| {
-                                        crate::modrinth::Error::from(crate::modrinth::ErrorKind::DirectoryMoveError(
-                                            format!(
-                                                "Failed to create directory {}: {}",
-                                                parent.display(),
-                                                e
+                                    crate::modrinth::util::io::create_dir_all(parent)
+                                        .await
+                                        .map_err(|e| {
+                                            crate::modrinth::Error::from(
+                                                crate::modrinth::ErrorKind::DirectoryMoveError(
+                                                    format!(
+                                                        "Failed to create directory {}: {}",
+                                                        parent.display(),
+                                                        e
+                                                    ),
+                                                ),
                                             )
-                                        ))
-                                    })?;
+                                        })?;
                                 }
 
-                                crate::modrinth::util::io::rename_or_move(
-                                    &x.old,
-                                    &x.new,
-                                )
-                                .await
+                                crate::modrinth::util::io::rename_or_move(&x.old, &x.new)
+                                    .await
                                     .map_err(|e| {
-                                        crate::modrinth::Error::from(crate::modrinth::ErrorKind::DirectoryMoveError(
-                                            format!(
-                                                "Failed to move directory from {} to {}: {}",
-                                                x.old.display(),
-                                                x.new.display(),
-                                                e
+                                        crate::modrinth::Error::from(
+                                            crate::modrinth::ErrorKind::DirectoryMoveError(
+                                                format!(
+                                                    "Failed to move directory from {} to {}: {}",
+                                                    x.old.display(),
+                                                    x.new.display(),
+                                                    e
+                                                ),
                                             ),
-                                        ))
+                                        )
                                     })?;
 
-                                let _ = emit_loading(
-                                    &loader_bar_id,
-                                    90.0 / paths_len as f64,
-                                    None,
-                                );
+                                let _ = emit_loading(&loader_bar_id, 90.0 / paths_len as f64, None);
 
                                 success_idxs.insert(idx);
 
@@ -389,8 +375,7 @@ impl DirectoryInfo {
                         for idx in success_idxs.iter() {
                             let path = &paths[*idx.key()];
 
-                            let res =
-                                tokio::fs::rename(&path.new, &path.old).await;
+                            let res = tokio::fs::rename(&path.new, &path.old).await;
 
                             if let Err(e) = res {
                                 tracing::warn!(
@@ -407,7 +392,12 @@ impl DirectoryInfo {
                     if let Some(disk_usage) = get_disk_usage(&move_dir)?
                         && total_size > disk_usage
                     {
-                        return Err(crate::modrinth::ErrorKind::DirectoryMoveError(format!("Not enough space to move directory to {}: only {} bytes available", app_dir.display(), disk_usage)).into());
+                        return Err(crate::modrinth::ErrorKind::DirectoryMoveError(format!(
+                            "Not enough space to move directory to {}: only {} bytes available",
+                            app_dir.display(),
+                            disk_usage
+                        ))
+                        .into());
                     }
 
                     let loader_bar_id = Arc::new(&loader_bar_id);
@@ -415,14 +405,18 @@ impl DirectoryInfo {
                         let loader_bar_id = loader_bar_id.clone();
 
                         async move {
-                            crate::modrinth::util::fetch::copy(
-                                &x.old,
-                                &x.new,
-                                io_semaphore,
-                            )
-                            .await.map_err(|e| { crate::modrinth::Error::from(
-                                crate::modrinth::ErrorKind::DirectoryMoveError(format!("Failed to move directory from {} to {}: {}", x.old.display(), x.new.display(), e)))
-                            })?;
+                            crate::modrinth::util::fetch::copy(&x.old, &x.new, io_semaphore)
+                                .await
+                                .map_err(|e| {
+                                    crate::modrinth::Error::from(
+                                        crate::modrinth::ErrorKind::DirectoryMoveError(format!(
+                                            "Failed to move directory from {} to {}: {}",
+                                            x.old.display(),
+                                            x.new.display(),
+                                            e
+                                        )),
+                                    )
+                                })?;
 
                             let _ = emit_loading(
                                 &loader_bar_id,
@@ -443,11 +437,7 @@ impl DirectoryInfo {
                                 let _permit = io_semaphore.0.acquire().await?;
                                 crate::modrinth::util::io::remove_file(&x.old).await?;
 
-                                emit_loading(
-                                    &loader_bar_id,
-                                    30.0 / paths_len as f64,
-                                    None,
-                                )?;
+                                emit_loading(&loader_bar_id, 30.0 / paths_len as f64, None)?;
 
                                 Ok::<(), crate::modrinth::Error>(())
                             };
@@ -479,17 +469,13 @@ impl DirectoryInfo {
                     profile.icon_path = profile.icon_path.map(|x| {
                         x.replace(
                             prev_custom_dir,
-                            new_dir
-                                .trim_end_matches('/')
-                                .trim_end_matches('\\'),
+                            new_dir.trim_end_matches('/').trim_end_matches('\\'),
                         )
                     });
                     profile.java_path = profile.java_path.map(|x| {
                         x.replace(
                             prev_custom_dir,
-                            new_dir
-                                .trim_end_matches('/')
-                                .trim_end_matches('\\'),
+                            new_dir.trim_end_matches('/').trim_end_matches('\\'),
                         )
                     });
                     profile.upsert(exec).await?;

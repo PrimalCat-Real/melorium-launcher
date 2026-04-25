@@ -100,9 +100,9 @@ pub enum CreatePackLocation {
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CreatePackProfile {
-    pub name: String, // the name of the profile, and relative path
-    pub game_version: String, // the game version of the profile
-    pub modloader: ModLoader, // the modloader to use
+    pub name: String,                    // the name of the profile, and relative path
+    pub game_version: String,            // the game version of the profile
+    pub modloader: ModLoader,            // the modloader to use
     pub loader_version: Option<String>, // the modloader version to use, set to "latest", "stable", or the ID of your chosen loader. defaults to latest
     pub icon: Option<PathBuf>,          // the icon for the profile
     pub icon_url: Option<String>, // the URL icon for a profile (ONLY USED FOR TEMPORARY PROFILES)
@@ -144,9 +144,7 @@ pub struct CreatePackDescription {
     pub profile_path: String,
 }
 
-pub fn get_profile_from_pack(
-    location: CreatePackLocation,
-) -> CreatePackProfile {
+pub fn get_profile_from_pack(location: CreatePackLocation) -> CreatePackProfile {
     match location {
         CreatePackLocation::FromVersionId {
             project_id,
@@ -220,26 +218,21 @@ pub async fn generate_pack_from_version_id(
     )
     .await?
     .ok_or_else(|| {
-        crate::modrinth::ErrorKind::InputError(
-            "Invalid version ID specified!".to_string(),
-        )
+        crate::modrinth::ErrorKind::InputError("Invalid version ID specified!".to_string())
     })?;
     emit_loading(&loading_bar, 10.0, None)?;
 
-    let (url, hash) =
-        if let Some(file) = version.files.iter().find(|x| x.primary) {
-            Some((file.url.clone(), file.hashes.get("sha1")))
-        } else {
-            version
-                .files
-                .first()
-                .map(|file| (file.url.clone(), file.hashes.get("sha1")))
-        }
-        .ok_or_else(|| {
-            crate::modrinth::ErrorKind::InputError(
-                "Specified version has no files".to_string(),
-            )
-        })?;
+    let (url, hash) = if let Some(file) = version.files.iter().find(|x| x.primary) {
+        Some((file.url.clone(), file.hashes.get("sha1")))
+    } else {
+        version
+            .files
+            .first()
+            .map(|file| (file.url.clone(), file.hashes.get("sha1")))
+    }
+    .ok_or_else(|| {
+        crate::modrinth::ErrorKind::InputError("Specified version has no files".to_string())
+    })?;
 
     let file = fetch_advanced(
         Method::GET,
@@ -254,18 +247,12 @@ pub async fn generate_pack_from_version_id(
     .await?;
     emit_loading(&loading_bar, 0.0, Some("Fetching project metadata"))?;
 
-    let project = CachedEntry::get_project(
-        &version.project_id,
-        None,
-        &state.pool,
-        &state.api_semaphore,
-    )
-    .await?
-    .ok_or_else(|| {
-        crate::modrinth::ErrorKind::InputError(
-            "Invalid project ID specified!".to_string(),
-        )
-    })?;
+    let project =
+        CachedEntry::get_project(&version.project_id, None, &state.pool, &state.api_semaphore)
+            .await?
+            .ok_or_else(|| {
+                crate::modrinth::ErrorKind::InputError("Invalid project ID specified!".to_string())
+            })?;
 
     // Only fetch the pack icon when icon_url is provided (new profile).
     // When installing to an existing profile (e.g. server projects),
@@ -274,9 +261,7 @@ pub async fn generate_pack_from_version_id(
         emit_loading(&loading_bar, 10.0, Some("Retrieving icon"))?;
         let fetched = if let Some(icon_url) = project.icon_url {
             let state = State::get().await?;
-            let icon_bytes =
-                fetch(&icon_url, None, &state.fetch_semaphore, &state.pool)
-                    .await?;
+            let icon_bytes = fetch(&icon_url, None, &state.fetch_semaphore, &state.pool).await?;
 
             let filename = icon_url.rsplit('/').next();
 

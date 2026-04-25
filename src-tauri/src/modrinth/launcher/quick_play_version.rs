@@ -2,9 +2,7 @@ use daedalus::minecraft::Version;
 use serde::{Deserialize, Serialize};
 
 // If modified, also update QuickPlayServerVersion.java
-#[derive(
-    Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize,
-)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum QuickPlayServerVersion {
     Builtin,
@@ -34,9 +32,7 @@ impl QuickPlayServerVersion {
 }
 
 // If modified, also update QuickPlaySingleplayerVersion.java
-#[derive(
-    Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize,
-)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum QuickPlaySingleplayerVersion {
     Builtin,

@@ -37,12 +37,10 @@ pub struct InstalledModpack {
 // Check if folder has a minecraftinstance.json that parses
 pub async fn is_valid_curseforge(instance_folder: PathBuf) -> bool {
     let minecraft_instance = serde_json::from_str::<MinecraftInstance>(
-        &io::read_any_encoding_to_string(
-            &instance_folder.join("minecraftinstance.json"),
-        )
-        .await
-        .unwrap_or(("".into(), encoding_rs::UTF_8))
-        .0,
+        &io::read_any_encoding_to_string(&instance_folder.join("minecraftinstance.json"))
+            .await
+            .unwrap_or(("".into(), encoding_rs::UTF_8))
+            .0,
     );
     minecraft_instance.is_ok()
 }
@@ -78,9 +76,7 @@ pub async fn import_curseforge(
         thumbnail_url: Some(thumbnail_url),
     }) = minecraft_instance.installed_modpack.clone()
     {
-        let icon_bytes =
-            fetch(&thumbnail_url, None, &state.fetch_semaphore, &state.pool)
-                .await?;
+        let icon_bytes = fetch(&thumbnail_url, None, &state.fetch_semaphore, &state.pool).await?;
         let filename = thumbnail_url.rsplit('/').next_back();
         if let Some(filename) = filename {
             icon = Some(
@@ -134,8 +130,7 @@ pub async fn import_curseforge(
                 .clone()
                 .unwrap_or_else(|| backup_name.to_string());
             prof.install_stage = ProfileInstallStage::PackInstalling;
-            prof.icon_path =
-                icon.clone().map(|x| x.to_string_lossy().to_string());
+            prof.icon_path = icon.clone().map(|x| x.to_string_lossy().to_string());
             prof.game_version.clone_from(&game_version);
             prof.loader_version = loader_version.clone().map(|x| x.id);
             prof.loader = mod_loader;
@@ -149,8 +144,7 @@ pub async fn import_curseforge(
             prof.name = override_title
                 .clone()
                 .unwrap_or_else(|| backup_name.to_string());
-            prof.icon_path =
-                icon.clone().map(|x| x.to_string_lossy().to_string());
+            prof.icon_path = icon.clone().map(|x| x.to_string_lossy().to_string());
             prof.game_version
                 .clone_from(&minecraft_instance.game_version);
             prof.loader_version = None;
@@ -172,12 +166,8 @@ pub async fn import_curseforge(
     .await?;
 
     if let Some(profile_val) = crate::modrinth::api::profile::get(profile_path).await? {
-        crate::modrinth::launcher::install_minecraft(
-            &profile_val,
-            Some(loading_bar),
-            false,
-        )
-        .await?;
+        crate::modrinth::launcher::install_minecraft(&profile_val, Some(loading_bar), false)
+            .await?;
     }
 
     Ok(())

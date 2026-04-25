@@ -1,15 +1,13 @@
 //! Theseus profile management interface
 
 use crate::modrinth::event::LoadingBarType;
-use crate::modrinth::event::emit::{
-    emit_loading, init_loading, loading_try_for_each_concurrent,
-};
+use crate::modrinth::event::emit::{emit_loading, init_loading, loading_try_for_each_concurrent};
 use crate::modrinth::pack::install_from::{
     EnvType, PackDependency, PackFile, PackFileHash, PackFormat,
 };
 use crate::modrinth::state::{
-    CacheBehaviour, CachedEntry, Credentials, JavaVersion, ProcessMetadata,
-    ProfileFile, ProfileInstallStage, ProjectType, SideType,
+    CacheBehaviour, CachedEntry, Credentials, JavaVersion, ProcessMetadata, ProfileFile,
+    ProfileInstallStage, ProjectType, SideType,
 };
 
 use crate::modrinth::event::{ProfilePayloadType, emit::emit_profile};
@@ -87,8 +85,7 @@ pub async fn get_projects(
 
         Ok(files)
     } else {
-        Err(crate::modrinth::ErrorKind::UnmanagedProfileError(path.to_string())
-            .as_error())
+        Err(crate::modrinth::ErrorKind::UnmanagedProfileError(path.to_string()).as_error())
     }
 }
 
@@ -131,16 +128,12 @@ where
 
         Ok(())
     } else {
-        Err(crate::modrinth::ErrorKind::UnmanagedProfileError(path.to_string())
-            .as_error())
+        Err(crate::modrinth::ErrorKind::UnmanagedProfileError(path.to_string()).as_error())
     }
 }
 
 /// Edits a profile's icon
-pub async fn edit_icon(
-    path: &str,
-    icon_path: Option<&Path>,
-) -> crate::modrinth::Result<()> {
+pub async fn edit_icon(path: &str, icon_path: Option<&Path>) -> crate::modrinth::Result<()> {
     let state = State::get().await?;
 
     if let Some(mut profile) = get(path).await? {
@@ -165,17 +158,14 @@ pub async fn edit_icon(
 
         Ok(())
     } else {
-        Err(crate::modrinth::ErrorKind::UnmanagedProfileError(path.to_string())
-            .as_error())
+        Err(crate::modrinth::ErrorKind::UnmanagedProfileError(path.to_string()).as_error())
     }
 }
 
 // Gets the optimal JRE key for the given profile, using Daedalus
 // Generally this would be used for profile_create, to get the optimal JRE key
 // this can be overwritten by the user a profile-by-profile basis
-pub async fn get_optimal_jre_key(
-    path: &str,
-) -> crate::modrinth::Result<Option<JavaVersion>> {
+pub async fn get_optimal_jre_key(path: &str) -> crate::modrinth::Result<Option<JavaVersion>> {
     let state = State::get().await?;
 
     if let Some(profile) = get(path).await? {
@@ -210,16 +200,13 @@ pub async fn get_optimal_jre_key(
         )
         .await?;
 
-        let version = crate::modrinth::launcher::get_java_version_from_profile(
-            &profile,
-            &version_info,
-        )
-        .await?;
+        let version =
+            crate::modrinth::launcher::get_java_version_from_profile(&profile, &version_info)
+                .await?;
 
         Ok(version)
     } else {
-        Err(crate::modrinth::ErrorKind::UnmanagedProfileError(path.to_string())
-            .as_error())
+        Err(crate::modrinth::ErrorKind::UnmanagedProfileError(path.to_string()).as_error())
     }
 }
 
@@ -235,11 +222,8 @@ pub async fn list() -> crate::modrinth::Result<Vec<Profile>> {
 #[tracing::instrument]
 pub async fn install(path: &str, force: bool) -> crate::modrinth::Result<()> {
     if let Some(profile) = get(path).await? {
-        let result =
-            crate::modrinth::launcher::install_minecraft(&profile, None, force).await;
-        if result.is_err()
-            && profile.install_stage != ProfileInstallStage::Installed
-        {
+        let result = crate::modrinth::launcher::install_minecraft(&profile, None, force).await;
+        if result.is_err() && profile.install_stage != ProfileInstallStage::Installed {
             edit(path, |prof| {
                 prof.install_stage = ProfileInstallStage::NotInstalled;
                 async { Ok(()) }
@@ -248,8 +232,7 @@ pub async fn install(path: &str, force: bool) -> crate::modrinth::Result<()> {
         }
         result?;
     } else {
-        return Err(crate::modrinth::ErrorKind::UnmanagedProfileError(path.to_string())
-            .as_error());
+        return Err(crate::modrinth::ErrorKind::UnmanagedProfileError(path.to_string()).as_error());
     }
     Ok(())
 }
@@ -297,9 +280,7 @@ pub async fn update_all_projects(
                 let map = map.clone();
 
                 async move {
-                    let new_path =
-                        update_project(profile_path, &project, Some(true))
-                            .await?;
+                    let new_path = update_project(profile_path, &project, Some(true)).await?;
 
                     map.write().await.insert(project, new_path);
 
@@ -314,10 +295,7 @@ pub async fn update_all_projects(
 
         Ok(Arc::try_unwrap(map).unwrap().into_inner())
     } else {
-        Err(
-            crate::modrinth::ErrorKind::UnmanagedProfileError(profile_path.to_string())
-                .as_error(),
-        )
+        Err(crate::modrinth::ErrorKind::UnmanagedProfileError(profile_path.to_string()).as_error())
     }
 }
 
@@ -361,15 +339,12 @@ pub async fn update_project(
             return Ok(path);
         }
 
-        Err(crate::modrinth::ErrorKind::InputError(
-            "This project cannot be updated!".to_string(),
-        )
-        .as_error())
-    } else {
         Err(
-            crate::modrinth::ErrorKind::UnmanagedProfileError(profile_path.to_string())
+            crate::modrinth::ErrorKind::InputError("This project cannot be updated!".to_string())
                 .as_error(),
         )
+    } else {
+        Err(crate::modrinth::ErrorKind::UnmanagedProfileError(profile_path.to_string()).as_error())
     }
 }
 
@@ -444,10 +419,7 @@ pub async fn toggle_disable_project(
 /// Remove a project from a profile
 /// Uses and returns the relative path to the project
 #[tracing::instrument]
-pub async fn remove_project(
-    profile_path: &str,
-    project: &str,
-) -> crate::modrinth::Result<()> {
+pub async fn remove_project(profile_path: &str, project: &str) -> crate::modrinth::Result<()> {
     Profile::remove_project(profile_path, project).await?;
 
     emit_profile(profile_path, ProfilePayloadType::Edited).await?;
@@ -467,8 +439,7 @@ pub async fn export_mrpack(
     _name: Option<String>,
 ) -> crate::modrinth::Result<()> {
     let state = State::get().await?;
-    let _permit: tokio::sync::SemaphorePermit =
-        state.io_semaphore.0.acquire().await?;
+    let _permit: tokio::sync::SemaphorePermit = state.io_semaphore.0.acquire().await?;
     let profile = get(profile_path).await?.ok_or_else(|| {
         crate::modrinth::ErrorKind::OtherError(format!(
             "Tried to export a nonexistent or unloaded profile at path {profile_path}!"
@@ -497,11 +468,9 @@ pub async fn export_mrpack(
 
     // Create mrpack json configuration file
     let version_id = version_id.unwrap_or("1.0.0".to_string());
-    let mut packfile =
-        create_mrpack_json(&profile, version_id, description).await?;
-    let included_candidates_set = HashSet::<_>::from_iter(
-        included_export_candidates.iter().map(|x| x.as_str()),
-    );
+    let mut packfile = create_mrpack_json(&profile, version_id, description).await?;
+    let included_candidates_set =
+        HashSet::<_>::from_iter(included_export_candidates.iter().map(|x| x.as_str()));
     packfile
         .files
         .retain(|f| included_candidates_set.contains(f.path.as_str()));
@@ -597,10 +566,7 @@ pub async fn get_pack_export_candidates(
                 .await
                 .map_err(|e| IOError::with_path(e, &profile_base_dir))?
             {
-                path_list.push(pack_get_relative_path(
-                    &profile_base_dir,
-                    &entry.path(),
-                )?);
+                path_list.push(pack_get_relative_path(&profile_base_dir, &entry.path())?);
             }
         } else {
             // One layer of files/folders if its a file
@@ -709,8 +675,7 @@ async fn run_credentials(
         .filter(|hook_command| !hook_command.is_empty());
 
     let memory = profile.memory.unwrap_or(settings.memory);
-    let resolution =
-        profile.game_resolution.unwrap_or(settings.game_resolution);
+    let resolution = profile.game_resolution.unwrap_or(settings.game_resolution);
 
     let env_args = profile
         .custom_env_vars
@@ -802,8 +767,7 @@ pub async fn try_update_playtime(path: &str) -> crate::modrinth::Result<()> {
 
     let res = if updated_recent_playtime > 0 {
         // Create update struct to send to labrinth
-        let modrinth_pack_version_id =
-            profile.linked_data.as_ref().map(|l| l.version_id.clone());
+        let modrinth_pack_version_id = profile.linked_data.as_ref().map(|l| l.version_id.clone());
         let playtime_update_json = json!({
             "seconds": updated_recent_playtime,
             "loader": profile.loader.as_str(),
@@ -818,8 +782,7 @@ pub async fn try_update_playtime(path: &str) -> crate::modrinth::Result<()> {
             .await?
         {
             if let Some(metadata) = project.metadata {
-                hashmap
-                    .insert(metadata.version_id, playtime_update_json.clone());
+                hashmap.insert(metadata.version_id, playtime_update_json.clone());
             }
         }
 
@@ -879,8 +842,7 @@ pub async fn create_mrpack_json(
             .into());
         }
     };
-    dependencies
-        .insert(PackDependency::Minecraft, profile.game_version.clone());
+    dependencies.insert(PackDependency::Minecraft, profile.game_version.clone());
 
     let state = State::get().await?;
     let projects = profile
@@ -907,8 +869,7 @@ pub async fn create_mrpack_json(
     let files = projects
         .into_iter()
         .filter_map(|(path, version_id)| {
-            if let Some(version) = versions.iter().find(|x| x.id == version_id)
-            {
+            if let Some(version) = versions.iter().find(|x| x.id == version_id) {
                 let mut env = HashMap::new();
                 // TODO: envtype should be a controllable option (in general or at least .mrpack exporting)
                 // For now, assume required.

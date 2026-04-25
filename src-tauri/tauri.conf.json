@@ -16,11 +16,18 @@
         "width": 1100,
         "height": 600,
         "resizable": true,
-        "fullscreen": false
+        "fullscreen": false,
+        "decorations": false
       }
     ],
     "security": {
       "csp": null
+    }
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [],
+      "dialog": false
     }
   },
   "bundle": {

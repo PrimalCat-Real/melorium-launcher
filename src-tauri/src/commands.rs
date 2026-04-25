@@ -1,10 +1,8 @@
 use crate::modrinth::State;
-use crate::modrinth::profile::create::profile_create;
 use crate::modrinth::api::profile::run as profile_run;
-use crate::modrinth::profile::QuickPlayType;
 use crate::modrinth::prelude::ModLoader;
-
-
+use crate::modrinth::profile::QuickPlayType;
+use crate::modrinth::profile::create::profile_create;
 
 use tracing::info;
 
@@ -13,34 +11,37 @@ pub async fn download_minecraft(app_handle: tauri::AppHandle) -> Result<(), Stri
     info!("Initializing state for download...");
     let _ = crate::modrinth::EventState::init(app_handle.clone()).await;
     let _ = State::init("com.melorium.launcher".to_string()).await;
-    
+
     // Wait for state to be ready
     let _state = State::get().await.map_err(|e| e.to_string())?;
-    
+
     // Force the custom directory to be C:\Projects\supertest in settings
     let mut settings = crate::modrinth::settings::get().await.unwrap_or_default();
     settings.custom_dir = Some("C:\\Projects\\supertest".to_string());
-    crate::modrinth::settings::set(settings.clone()).await.map_err(|e| e.to_string())?;
-    
+    crate::modrinth::settings::set(settings.clone())
+        .await
+        .map_err(|e| e.to_string())?;
+
     info!("Creating profile for Minecraft 1.21.1 with NeoForge...");
     let profile_name = "MeloriumTest".to_string();
-    
+
     // Check if profile exists, if not create it
     let result = profile_create(
         profile_name.clone(),
         "1.21.1".to_string(), // Game version
-        ModLoader::NeoForge, // Modloader
-        None, // latest neoforge
+        ModLoader::NeoForge,  // Modloader
+        None,                 // latest neoforge
         None,
         None,
         Some(false), // Don't skip install, actually download and install the game
-    ).await;
-    
+    )
+    .await;
+
     match result {
         Ok(path) => {
             info!("Profile created and installed successfully at {}", path);
             Ok(())
-        },
+        }
         Err(e) => {
             let err_str = format!("Failed to create profile: {}", e);
             if err_str.contains("Profile .json exists") {
@@ -59,7 +60,7 @@ pub async fn play_minecraft(app_handle: tauri::AppHandle) -> Result<(), String> 
     let _ = crate::modrinth::EventState::init(app_handle.clone()).await;
     let _ = State::init("com.melorium.launcher".to_string()).await;
     let state = State::get().await.map_err(|e| e.to_string())?;
-    
+
     info!("Setting up dummy credentials 'Test'...");
     // Create and upsert credentials directly
     let _uuid = uuid::Uuid::parse_str("00000000-0000-0000-0000-000000000000").unwrap();
@@ -77,11 +78,13 @@ pub async fn play_minecraft(app_handle: tauri::AppHandle) -> Result<(), String> 
     .bind(9999999999i64)
     .execute(&state.pool)
     .await;
-    
+
     info!("Launching MeloriumTest...");
-    let profile = crate::modrinth::profile::get("MeloriumTest").await.map_err(|e| e.to_string())?
+    let profile = crate::modrinth::profile::get("MeloriumTest")
+        .await
+        .map_err(|e| e.to_string())?
         .ok_or_else(|| "Profile MeloriumTest not found. You must download first!".to_string())?;
-        
+
     match profile_run(&profile.path, QuickPlayType::None).await {
         Ok(_) => {
             info!("Successfully launched MeloriumTest!");

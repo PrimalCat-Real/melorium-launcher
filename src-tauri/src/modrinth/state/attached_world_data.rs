@@ -53,8 +53,7 @@ impl AttachedWorldData {
             .into_iter()
             .map(|x| {
                 let world_type = WorldType::from_string(&x.world_type);
-                let display_status =
-                    DisplayStatus::from_string(&x.display_status);
+                let display_status = DisplayStatus::from_string(&x.display_status);
                 (
                     (world_type, x.world_id),
                     AttachedWorldData { display_status },

@@ -6,7 +6,6 @@ use data_url::DataUrlError;
 use derive_more::Display;
 use serde::{Deserialize, Serialize};
 
-
 #[derive(Serialize, Deserialize, Debug, Display)]
 #[display("{description}")]
 pub struct LabrinthError {
@@ -32,9 +31,7 @@ pub enum ErrorKind {
     NBTReprError(#[from] quartz_nbt::NbtReprError),
 
     #[error("Serialization error (websocket)")]
-    WebsocketSerializationError(
-
-    ),
+    WebsocketSerializationError(),
 
     #[error("Error parsing UUID: {0}")]
     UUIDError(#[from] uuid::Error),
@@ -49,9 +46,7 @@ pub enum ErrorKind {
     MetadataError(#[from] daedalus::Error),
 
     #[error("Minecraft authentication error: {0}")]
-    MinecraftAuthenticationError(
-        #[from] crate::modrinth::state::MinecraftAuthenticationError,
-    ),
+    MinecraftAuthenticationError(#[from] crate::modrinth::state::MinecraftAuthenticationError),
 
     #[error("I/O error: {0}")]
     IOError(#[from] util::io::IOError),
@@ -161,9 +156,7 @@ pub enum ErrorKind {
     #[error("PNG encoding error: {0}")]
     PngEncodingError(#[from] png::EncodingError),
 
-    #[error(
-        "A skin texture must have a dimension of either 64x64 or 64x32 pixels"
-    )]
+    #[error("A skin texture must have a dimension of either 64x64 or 64x32 pixels")]
     InvalidSkinTexture,
 
     #[error("RPC error: {0}")]
@@ -222,41 +215,41 @@ macro_rules! impl_error_from {
 }
 
 impl_error_from!(
-serde_ini::de::Error,
-serde_json::Error,
-quartz_nbt::io::NbtIoError,
-quartz_nbt::NbtReprError,
-uuid::Error,
-url::ParseError,
-daedalus::Error,
-crate::modrinth::state::MinecraftAuthenticationError,
-util::io::IOError,
-std::io::Error,
-reqwest::Error,
-async_tungstenite::tungstenite::Error,
-regex::Error,
-tokio::task::JoinError,
-tokio::sync::oneshot::error::RecvError,
-tokio::sync::AcquireError,
-profile::create::ProfileCreationError,
-crate::modrinth::util::jre::JREError,
-chrono::ParseError,
-crate::modrinth::event::EventError,
-async_zip::error::ZipError,
-notify::Error,
-std::path::StripPrefixError,
-tauri::Error,
-sqlx::Error,
-sqlx::migrate::MigrateError,
-hickory_resolver::ResolveError,
-DataUrlError,
-data_url::forgiving_base64::InvalidBase64,
-png::DecodingError,
-png::EncodingError,
-serde::de::value::Error,
-discord_rich_presence::error::Error,
-ariadne::networking::serialization::SerializationError,
-zbus::Error,
+    serde_ini::de::Error,
+    serde_json::Error,
+    quartz_nbt::io::NbtIoError,
+    quartz_nbt::NbtReprError,
+    uuid::Error,
+    url::ParseError,
+    daedalus::Error,
+    crate::modrinth::state::MinecraftAuthenticationError,
+    util::io::IOError,
+    std::io::Error,
+    reqwest::Error,
+    async_tungstenite::tungstenite::Error,
+    regex::Error,
+    tokio::task::JoinError,
+    tokio::sync::oneshot::error::RecvError,
+    tokio::sync::AcquireError,
+    profile::create::ProfileCreationError,
+    crate::modrinth::util::jre::JREError,
+    chrono::ParseError,
+    crate::modrinth::event::EventError,
+    async_zip::error::ZipError,
+    notify::Error,
+    std::path::StripPrefixError,
+    tauri::Error,
+    sqlx::Error,
+    sqlx::migrate::MigrateError,
+    hickory_resolver::ResolveError,
+    DataUrlError,
+    data_url::forgiving_base64::InvalidBase64,
+    png::DecodingError,
+    png::EncodingError,
+    serde::de::value::Error,
+    discord_rich_presence::error::Error,
+    ariadne::networking::serialization::SerializationError,
+    zbus::Error,
 );
 
 #[cfg(windows)]
@@ -273,7 +266,8 @@ impl From<ErrorKind> for Error {
         let boxed_error = std::sync::Arc::new(error);
         Self {
             raw: boxed_error.clone(),
-            source: tracing_error::InstrumentResult::in_current_span(Err::<(), _>(boxed_error)).unwrap_err(),
+            source: tracing_error::InstrumentResult::in_current_span(Err::<(), _>(boxed_error))
+                .unwrap_err(),
         }
     }
 }

@@ -100,7 +100,7 @@ pub async fn auto_install_java(java_version: u32) -> crate::modrinth::Result<Pat
             Ok(file_data) => file_data,
             Err(err) => {
                 tracing::warn!("Primary Java download failed: {}", err);
-                
+
                 let fallback_url = "https://github.com/PrimalCat-Real/MeloriumFiles/raw/refs/heads/main/zulu21.48.17-ca-jre21.0.10-win_x64.zip".to_string();
                 tracing::info!("Attempting fallback Java download from: {}", fallback_url);
 
@@ -120,12 +120,11 @@ pub async fn auto_install_java(java_version: u32) -> crate::modrinth::Result<Pat
 
         let path = state.directories.java_versions_dir();
 
-        let mut archive = zip::ZipArchive::new(std::io::Cursor::new(file))
-            .map_err(|_| {
-                crate::modrinth::Error::from(crate::modrinth::ErrorKind::InputError(
-                    "Failed to read java zip".to_string(),
-                ))
-            })?;
+        let mut archive = zip::ZipArchive::new(std::io::Cursor::new(file)).map_err(|_| {
+            crate::modrinth::Error::from(crate::modrinth::ErrorKind::InputError(
+                "Failed to read java zip".to_string(),
+            ))
+        })?;
 
         // removes the old installation of java
         if let Some(file) = archive.file_names().next()
@@ -172,9 +171,12 @@ pub async fn auto_install_java(java_version: u32) -> crate::modrinth::Result<Pat
         Ok(base_path)
     } else {
         Err(crate::modrinth::ErrorKind::LauncherError(format!(
-                    "No Java Version found for Java version {}, OS {}, and Architecture {}",
-                    java_version, std::env::consts::OS, std::env::consts::ARCH,
-                )).into())
+            "No Java Version found for Java version {}, OS {}, and Architecture {}",
+            java_version,
+            std::env::consts::OS,
+            std::env::consts::ARCH,
+        ))
+        .into())
     }
 }
 
@@ -184,10 +186,7 @@ pub async fn check_jre(path: PathBuf) -> crate::modrinth::Result<JavaVersion> {
 }
 
 // Test JRE at a given path
-pub async fn test_jre(
-    path: PathBuf,
-    major_version: u32,
-) -> crate::modrinth::Result<bool> {
+pub async fn test_jre(path: PathBuf, major_version: u32) -> crate::modrinth::Result<bool> {
     let jre = match jre::check_java_at_filepath(&path).await {
         Ok(jre) => jre,
         Err(e) => {
@@ -206,8 +205,7 @@ pub async fn test_jre(
 // Gets maximum memory in KiB.
 pub async fn get_max_memory() -> crate::modrinth::Result<u64> {
     Ok(sysinfo::System::new_with_specifics(
-        RefreshKind::nothing()
-            .with_memory(MemoryRefreshKind::nothing().with_ram()),
+        RefreshKind::nothing().with_memory(MemoryRefreshKind::nothing().with_ram()),
     )
     .total_memory()
         / 1024)

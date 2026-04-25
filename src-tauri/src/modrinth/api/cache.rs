@@ -1,6 +1,6 @@
 use crate::modrinth::state::{
-    CacheBehaviour, CacheValueType, CachedEntry, Organization, Project,
-    ProjectV3, SearchResults, SearchResultsV3, TeamMember, User, Version,
+    CacheBehaviour, CacheValueType, CachedEntry, Organization, Project, ProjectV3, SearchResults,
+    SearchResultsV3, TeamMember, User, Version,
 };
 
 macro_rules! impl_cache_methods {
@@ -45,9 +45,7 @@ impl_cache_methods!(
     (SearchResultsV3, SearchResultsV3)
 );
 
-pub async fn purge_cache_types(
-    cache_types: &[CacheValueType],
-) -> crate::modrinth::Result<()> {
+pub async fn purge_cache_types(cache_types: &[CacheValueType]) -> crate::modrinth::Result<()> {
     let state = crate::modrinth::State::get().await?;
     CachedEntry::purge_cache_types(cache_types, &state.pool).await?;
 

@@ -19,16 +19,12 @@ pub mod state;
 
 pub use api::*;
 pub use error::*;
-pub use event::{
-    EventState, LoadingBar, LoadingBarType, emit::emit_loading,
-    emit::init_loading,
-};
+pub use event::{EventState, LoadingBar, LoadingBarType, emit::emit_loading, emit::init_loading};
 pub use logger::start_logger;
 pub use state::State;
 
 pub fn launcher_user_agent() -> String {
-    const LAUNCHER_BASE_USER_AGENT: &str =
-        concat!("modrinth/theseus/", env!("CARGO_PKG_VERSION"),);
+    const LAUNCHER_BASE_USER_AGENT: &str = concat!("modrinth/theseus/", env!("CARGO_PKG_VERSION"),);
 
     format!(
         "{} ({}; support@modrinth.com)",

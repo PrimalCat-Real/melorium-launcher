@@ -1,19 +1,16 @@
 //! Logic for launching Minecraft
+use crate::get_resource_file;
 use crate::modrinth::data::ModLoader;
 use crate::modrinth::event::emit::{emit_loading, init_or_edit_loading};
 use crate::modrinth::event::{LoadingBarId, LoadingBarType};
 use crate::modrinth::launcher::download::download_log_config;
 use crate::modrinth::launcher::io::IOError;
-use crate::modrinth::launcher::quick_play_version::{
-    QuickPlayServerVersion, QuickPlayVersion,
-};
+use crate::modrinth::launcher::quick_play_version::{QuickPlayServerVersion, QuickPlayVersion};
 use crate::modrinth::profile::QuickPlayType;
-use crate::modrinth::state::{
-    Credentials, JavaVersion, ProcessMetadata, ProfileInstallStage,
-};
+use crate::modrinth::state::{Credentials, JavaVersion, ProcessMetadata, ProfileInstallStage};
 use crate::modrinth::util::io;
 use crate::modrinth::util::rpc::RpcServerBuilder;
-use crate::get_resource_file; use crate::modrinth::{State, process, state as st};
+use crate::modrinth::{State, process, state as st};
 use chrono::Utc;
 use daedalus as d;
 use daedalus::minecraft::{LoggingSide, RuleAction, VersionInfo};
@@ -42,9 +39,7 @@ pub fn parse_rules(
 ) -> bool {
     let mut x = rules
         .iter()
-        .map(|x| {
-            parse_rule(x, java_version, quick_play_type, minecraft_updated)
-        })
+        .map(|x| parse_rule(x, java_version, quick_play_type, minecraft_updated))
         .collect::<Vec<Option<bool>>>();
 
     if rules
@@ -82,10 +77,7 @@ pub fn parse_rule(
                 || features.has_custom_resolution.unwrap_or(false)
                 || !features.has_quick_plays_support.unwrap_or(true)
                 || (features.is_quick_play_singleplayer.unwrap_or(false)
-                    && matches!(
-                        quick_play_type,
-                        QuickPlayType::Singleplayer(_)
-                    ))
+                    && matches!(quick_play_type, QuickPlayType::Singleplayer(_)))
                 || (features.is_quick_play_multiplayer.unwrap_or(false)
                     && matches!(quick_play_type, QuickPlayType::Server(..)))
                 || !features.is_quick_play_realms.unwrap_or(true)
@@ -129,8 +121,7 @@ pub async fn get_java_version_from_profile(
     version_info: &VersionInfo,
 ) -> crate::modrinth::Result<Option<JavaVersion>> {
     if let Some(java) = profile.java_path.as_ref() {
-        let java =
-            crate::modrinth::api::jre::check_jre(std::path::PathBuf::from(java)).await;
+        let java = crate::modrinth::api::jre::check_jre(std::path::PathBuf::from(java)).await;
 
         if let Ok(java) = java {
             return Ok(Some(java));
@@ -170,18 +161,20 @@ pub async fn get_loader_version_from_profile(
         crate::modrinth::api::metadata::get_loader_versions(loader.as_meta_str()).await?;
 
     let loaders = versions.game_versions.into_iter().find(|x| {
-        x.id.replace(daedalus::modded::DUMMY_REPLACE_STRING, game_version)
-            == game_version
+        x.id.replace(daedalus::modded::DUMMY_REPLACE_STRING, game_version) == game_version
     });
 
     if let Some(loaders) = loaders {
-        let loader_version = loaders.loaders.iter().find(|x| filter(x)).or(
-            if version == "stable" {
-                loaders.loaders.first()
-            } else {
-                None
-            },
-        );
+        let loader_version =
+            loaders
+                .loaders
+                .iter()
+                .find(|x| filter(x))
+                .or(if version == "stable" {
+                    loaders.loaders.first()
+                } else {
+                    None
+                });
 
         Ok(loader_version.cloned())
     } else {
@@ -217,8 +210,7 @@ pub async fn install_minecraft(
 
     let state = State::get().await?;
 
-    let instance_path =
-        crate::modrinth::api::profile::get_full_path(&profile.path).await?;
+    let instance_path = crate::modrinth::api::profile::get_full_path(&profile.path).await?;
     let minecraft = crate::modrinth::api::metadata::get_minecraft_versions().await?;
 
     let version_index = minecraft
@@ -246,12 +238,9 @@ pub async fn install_minecraft(
 
     // If no loader version is selected, try to select the stable version!
     if profile.loader != ModLoader::Vanilla && loader_version.is_none() {
-        loader_version = get_loader_version_from_profile(
-            &profile.game_version,
-            profile.loader,
-            Some("stable"),
-        )
-        .await?;
+        loader_version =
+            get_loader_version_from_profile(&profile.game_version, profile.loader, Some("stable"))
+                .await?;
 
         let loader_version_id = loader_version.clone();
         crate::modrinth::api::profile::edit(&profile.path, |prof| {
@@ -262,10 +251,9 @@ pub async fn install_minecraft(
         .await?;
     }
 
-    let version_jar =
-        loader_version.as_ref().map_or(version.id.clone(), |it| {
-            format!("{}-{}", version.id.clone(), it.id.clone())
-        });
+    let version_jar = loader_version.as_ref().map_or(version.id.clone(), |it| {
+        format!("{}-{}", version.id.clone(), it.id.clone())
+    });
 
     // Download version info (5)
     let mut version_info = download::download_version_info(
@@ -281,15 +269,14 @@ pub async fn install_minecraft(
         .java_version
         .as_ref()
         .map_or(8, |it| it.major_version);
-    let (java_version, set_java) = if let Some(java_version) =
-        get_java_version_from_profile(profile, &version_info).await?
-    {
-        (std::path::PathBuf::from(java_version.path), false)
-    } else {
-        let path = crate::modrinth::api::jre::auto_install_java(key).await?;
+    let (java_version, set_java) =
+        if let Some(java_version) = get_java_version_from_profile(profile, &version_info).await? {
+            (std::path::PathBuf::from(java_version.path), false)
+        } else {
+            let path = crate::modrinth::api::jre::auto_install_java(key).await?;
 
-        (path, true)
-    };
+            (path, true)
+        };
 
     // Test jre version
     let java_version = crate::modrinth::api::jre::check_jre(java_version.clone()).await?;
@@ -399,9 +386,7 @@ pub async fn install_minecraft(
                 emit_loading(
                     &loading_bar,
                     30.0 / total_length as f64,
-                    Some(&format!(
-                        "Running forge processor {index}/{total_length}"
-                    )),
+                    Some(&format!("Running forge processor {index}/{total_length}")),
                 )?;
             }
         }
@@ -421,9 +406,7 @@ pub async fn install_minecraft(
     Ok(())
 }
 
-pub async fn read_protocol_version_from_jar(
-    path: PathBuf,
-) -> crate::modrinth::Result<Option<u32>> {
+pub async fn read_protocol_version_from_jar(path: PathBuf) -> crate::modrinth::Result<Option<u32>> {
     let zip = async_zip::tokio::read::fs::ZipFileReader::new(path).await?;
     let Some(entry_index) = zip
         .file()
@@ -478,8 +461,7 @@ pub async fn launch_minecraft(
 
     let state = State::get().await?;
 
-    let instance_path =
-        crate::modrinth::api::profile::get_full_path(&profile.path).await?;
+    let instance_path = crate::modrinth::api::profile::get_full_path(&profile.path).await?;
 
     let minecraft = crate::modrinth::api::metadata::get_minecraft_versions().await?;
     let version_index = minecraft
@@ -513,19 +495,13 @@ pub async fn launch_minecraft(
         .into());
     }
 
-    let version_jar =
-        loader_version.as_ref().map_or(version.id.clone(), |it| {
-            format!("{}-{}", version.id.clone(), it.id.clone())
-        });
+    let version_jar = loader_version.as_ref().map_or(version.id.clone(), |it| {
+        format!("{}-{}", version.id.clone(), it.id.clone())
+    });
 
-    let mut version_info = download::download_version_info(
-        &state,
-        version,
-        loader_version.as_ref(),
-        None,
-        None,
-    )
-    .await?;
+    let mut version_info =
+        download::download_version_info(&state, version, loader_version.as_ref(), None, None)
+            .await?;
     if version_info.logging.is_none() {
         let requires_logging_info = version_index
             <= minecraft
@@ -575,9 +551,7 @@ pub async fn launch_minecraft(
                 })?
                 .into_iter();
             let mut command = Command::new(cmd.next().ok_or(
-                crate::modrinth::ErrorKind::LauncherError(
-                    "Empty wrapper command".to_owned(),
-                ),
+                crate::modrinth::ErrorKind::LauncherError("Empty wrapper command".to_owned()),
             )?);
             command.args(cmd);
             command.arg(&java_version.path);
@@ -590,8 +564,7 @@ pub async fn launch_minecraft(
 
     // Check if profile has a running profile, and reject running the command if it does
     // Done late so a quick double call doesn't launch two instances
-    let existing_processes =
-        process::get_by_profile_path(&profile.path).await?;
+    let existing_processes = process::get_by_profile_path(&profile.path).await?;
     if let Some(process) = existing_processes.first() {
         return Err(crate::modrinth::ErrorKind::LauncherError(format!(
             "Profile {} is already running at path: {}",
@@ -605,8 +578,7 @@ pub async fn launch_minecraft(
         io::create_dir_all(&natives_dir).await?;
     }
 
-    let quick_play_version =
-        QuickPlayVersion::find_version(version_index, &minecraft.versions);
+    let quick_play_version = QuickPlayVersion::find_version(version_index, &minecraft.versions);
     tracing::debug!(
         "Found QuickPlayVersion for {}: {quick_play_version:?}",
         profile.game_version
@@ -737,8 +709,7 @@ pub async fn launch_minecraft(
             }
         }
 
-        io::write(&options_path, input_encoding.encode(&options_string).0)
-            .await?;
+        io::write(&options_path, input_encoding.encode(&options_string).0).await?;
     }
 
     crate::modrinth::api::profile::edit(&profile.path, |prof| {

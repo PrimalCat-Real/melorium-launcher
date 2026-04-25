@@ -3,9 +3,7 @@ use crate::modrinth::launcher::get_loader_version_from_profile;
 use crate::modrinth::profile::get_full_path;
 use crate::modrinth::server_address::{parse_server_address, resolve_server_address};
 use crate::modrinth::state::attached_world_data::AttachedWorldData;
-use crate::modrinth::state::{
-    Profile, ProfileInstallStage, attached_world_data, server_join_log,
-};
+use crate::modrinth::state::{Profile, ProfileInstallStage, attached_world_data, server_join_log};
 use crate::modrinth::util::protocol_version::OLD_PROTOCOL_VERSIONS;
 pub use crate::modrinth::util::protocol_version::ProtocolVersion;
 pub use crate::modrinth::util::server_ping::{
@@ -73,9 +71,7 @@ impl World {
     }
 }
 
-#[derive(
-    Serialize, Deserialize, Debug, Copy, Clone, PartialEq, Eq, Hash, Default,
-)]
+#[derive(Serialize, Deserialize, Debug, Copy, Clone, PartialEq, Eq, Hash, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum WorldType {
     #[default]
@@ -203,19 +199,13 @@ pub async fn get_recent_worlds(
         }
         let profile_path = &profile.path;
         let profile_dir = profiles_dir.join(profile_path);
-        let profile_worlds =
-            get_all_worlds_in_profile(profile_path, &profile_dir).await;
+        let profile_worlds = get_all_worlds_in_profile(profile_path, &profile_dir).await;
         if let Err(e) = profile_worlds {
-            tracing::error!(
-                "Failed to get worlds for profile {}: {}",
-                profile_path,
-                e
-            );
+            tracing::error!("Failed to get worlds for profile {}: {}", profile_path, e);
             continue;
         }
         for world in profile_worlds? {
-            let is_older = least_recent_time.is_none()
-                || world.last_played < least_recent_time;
+            let is_older = least_recent_time.is_none() || world.last_played < least_recent_time;
             if result.len() >= limit && is_older {
                 continue;
             }
@@ -243,27 +233,20 @@ pub async fn get_recent_worlds(
 }
 
 pub async fn get_profile_worlds(profile_path: &str) -> Result<Vec<World>> {
-    get_all_worlds_in_profile(profile_path, &get_full_path(profile_path).await?)
-        .await
+    get_all_worlds_in_profile(profile_path, &get_full_path(profile_path).await?).await
 }
 
-async fn get_all_worlds_in_profile(
-    profile_path: &str,
-    profile_dir: &Path,
-) -> Result<Vec<World>> {
+async fn get_all_worlds_in_profile(profile_path: &str, profile_dir: &Path) -> Result<Vec<World>> {
     let mut worlds = vec![];
     get_singleplayer_worlds_in_profile(profile_dir, &mut worlds).await?;
-    get_server_worlds_in_profile(profile_path, profile_dir, &mut worlds)
-        .await?;
+    get_server_worlds_in_profile(profile_path, profile_dir, &mut worlds).await?;
 
     let state = State::get().await?;
-    let attached_data =
-        AttachedWorldData::get_all_for_instance(profile_path, &state.pool)
-            .await?;
+    let attached_data = AttachedWorldData::get_all_for_instance(profile_path, &state.pool).await?;
     if !attached_data.is_empty() {
         for world in &mut worlds {
-            if let Some(data) = attached_data
-                .get(&(world.world_type(), world.world_id().to_owned()))
+            if let Some(data) =
+                attached_data.get(&(world.world_type(), world.world_id().to_owned()))
             {
                 attach_world_data_to_world(world, data);
             }
@@ -296,14 +279,10 @@ async fn get_singleplayer_worlds_in_profile(
     Ok(())
 }
 
-pub async fn get_singleplayer_world(
-    instance: &str,
-    world: &str,
-) -> Result<World> {
+pub async fn get_singleplayer_world(instance: &str, world: &str) -> Result<World> {
     let state = State::get().await?;
     let profile_path = state.directories.profiles_dir().join(instance);
-    let mut world =
-        read_singleplayer_world(get_world_dir(&profile_path, world)).await?;
+    let mut world = read_singleplayer_world(get_world_dir(&profile_path, world)).await?;
 
     if let Some(data) = AttachedWorldData::get_for_world(
         instance,
@@ -326,10 +305,7 @@ async fn read_singleplayer_world(world_path: PathBuf) -> Result<World> {
     }
 }
 
-async fn read_singleplayer_world_maybe_locked(
-    world_path: PathBuf,
-    locked: bool,
-) -> Result<World> {
+async fn read_singleplayer_world_maybe_locked(world_path: PathBuf, locked: bool) -> Result<World> {
     #[derive(Deserialize, Debug)]
     #[serde(rename_all = "PascalCase")]
     struct LevelDataRoot {
@@ -350,11 +326,8 @@ async fn read_singleplayer_world_maybe_locked(
     }
 
     let level_data = io::read(world_path.join("level.dat")).await?;
-    let level_data: LevelDataRoot = quartz_nbt::serde::deserialize(
-        &level_data,
-        quartz_nbt::io::Flavor::GzCompressed,
-    )?
-    .0;
+    let level_data: LevelDataRoot =
+        quartz_nbt::serde::deserialize(&level_data, quartz_nbt::io::Flavor::GzCompressed)?.0;
     let level_data = level_data.data;
 
     let icon = Some(world_path.join("icon.png")).filter(|i| i.exists());
@@ -417,9 +390,7 @@ async fn get_server_worlds_in_profile(
                 .copied(),
             icon: server
                 .icon
-                .and_then(|icon| {
-                    Url::parse(&format!("data:image/png;base64,{icon}")).ok()
-                })
+                .and_then(|icon| Url::parse(&format!("data:image/png;base64,{icon}")).ok())
                 .map(Either::Right),
             display_status: DisplayStatus::Normal,
             details: WorldDetails::Server {
@@ -433,8 +404,7 @@ async fn get_server_worlds_in_profile(
 
     if let Some(join_log) = join_log {
         let mut futures = JoinSet::new();
-        for (index, world) in worlds.iter().enumerate().skip(first_server_index)
-        {
+        for (index, world) in worlds.iter().enumerate().skip(first_server_index) {
             // We can't check for the profile already having a last_played, in case the user joined
             // the target address directly more recently. This is often the case when using
             // quick-play before 1.20.
@@ -480,11 +450,7 @@ pub async fn set_world_display_status(
     Ok(())
 }
 
-pub async fn rename_world(
-    instance: &Path,
-    world: &str,
-    new_name: &str,
-) -> Result<()> {
+pub async fn rename_world(instance: &Path, world: &str, new_name: &str) -> Result<()> {
     let world = get_world_dir(instance, world);
     let level_dat_path = world.join("level.dat");
     if !level_dat_path.exists() {
@@ -536,8 +502,7 @@ pub async fn backup_world(instance: &Path, world: &str) -> Result<u64> {
         let formatted_time = now.format("%Y-%m-%d_%H-%M-%S");
         format!("{formatted_time}_{world}")
     };
-    let output_path =
-        backups_dir.join(find_available_name(&backups_dir, &name_base, ".zip"));
+    let output_path = backups_dir.join(find_available_name(&backups_dir, &name_base, ".zip"));
 
     let writer = tokio::fs::File::create(&output_path).await?;
     let mut writer = async_zip::tokio::write::ZipFileWriter::with_tokio(writer);
@@ -565,8 +530,7 @@ pub async fn backup_world(instance: &Path, world: &str) -> Result<u64> {
         );
         let mut stream = writer
             .write_entry_stream(
-                ZipEntryBuilder::new(zip_filename.into(), Compression::Deflate)
-                    .build(),
+                ZipEntryBuilder::new(zip_filename.into(), Compression::Deflate).build(),
             )
             .await?
             .compat_write();
@@ -596,8 +560,8 @@ fn find_available_name(dir: &Path, file_name: &str, extension: &str) -> String {
 
     let mut file_name = file_name.replace(
         [
-            '/', '\n', '\r', '\t', '\0', '\x0c', '`', '?', '*', '\\', '<', '>',
-            '|', '"', ':', '.', '/', '"',
+            '/', '\n', '\r', '\t', '\0', '\x0c', '`', '?', '*', '\\', '<', '>', '|', '"', ':', '.',
+            '/', '"',
         ],
         "_",
     );
@@ -696,9 +660,7 @@ async fn get_world_session_lock(world: &Path) -> Result<tokio::fs::File> {
     })
 }
 
-async fn try_get_world_session_lock(
-    world: &Path,
-) -> Result<Option<tokio::fs::File>> {
+async fn try_get_world_session_lock(world: &Path) -> Result<Option<tokio::fs::File>> {
     let file = tokio::fs::File::options()
         .create(true)
         .write(true)
@@ -743,16 +705,12 @@ pub async fn edit_server_in_profile(
     pack_status: ServerPackStatus,
 ) -> Result<()> {
     let mut servers = servers_data::read(profile_path).await?;
-    let server =
-        servers
-            .get_mut(index)
-            .filter(|x| !x.hidden)
-            .ok_or_else(|| {
-                ErrorKind::InputError(format!(
-                    "No editable server at index {index}"
-                ))
-                .as_error()
-            })?;
+    let server = servers
+        .get_mut(index)
+        .filter(|x| !x.hidden)
+        .ok_or_else(|| {
+            ErrorKind::InputError(format!("No editable server at index {index}")).as_error()
+        })?;
     server.name = name;
     server.ip = address;
     server.accept_textures = pack_status.into();
@@ -760,16 +718,10 @@ pub async fn edit_server_in_profile(
     Ok(())
 }
 
-pub async fn remove_server_from_profile(
-    profile_path: &Path,
-    index: usize,
-) -> Result<()> {
+pub async fn remove_server_from_profile(profile_path: &Path, index: usize) -> Result<()> {
     let mut servers = servers_data::read(profile_path).await?;
     if servers.get(index).filter(|x| !x.hidden).is_none() {
-        return Err(ErrorKind::InputError(format!(
-            "No removable server at index {index}"
-        ))
-        .into());
+        return Err(ErrorKind::InputError(format!("No removable server at index {index}")).into());
     }
     servers.remove(index);
     servers_data::write(profile_path, &servers).await?;
@@ -809,18 +761,12 @@ mod servers_data {
             return Ok(vec![]);
         }
         let servers_data = io::read(servers_dat_path).await?;
-        let servers_data: ServersData = quartz_nbt::serde::deserialize(
-            &servers_data,
-            quartz_nbt::io::Flavor::Uncompressed,
-        )?
-        .0;
+        let servers_data: ServersData =
+            quartz_nbt::serde::deserialize(&servers_data, quartz_nbt::io::Flavor::Uncompressed)?.0;
         Ok(servers_data.servers)
     }
 
-    pub async fn write(
-        instance_dir: &Path,
-        servers: &[ServerData],
-    ) -> Result<()> {
+    pub async fn write(instance_dir: &Path, servers: &[ServerData]) -> Result<()> {
         #[derive(Serialize, Debug)]
         struct ServersData<'a> {
             servers: &'a [ServerData],
@@ -837,13 +783,9 @@ mod servers_data {
     }
 }
 
-pub async fn get_profile_protocol_version(
-    profile: &str,
-) -> Result<Option<ProtocolVersion>> {
+pub async fn get_profile_protocol_version(profile: &str) -> Result<Option<ProtocolVersion>> {
     let mut profile = super::profile::get(profile).await?.ok_or_else(|| {
-        ErrorKind::UnmanagedProfileError(format!(
-            "Could not find profile {profile}"
-        ))
+        ErrorKind::UnmanagedProfileError(format!("Could not find profile {profile}"))
     })?;
     if profile.install_stage != ProfileInstallStage::Installed {
         return Ok(None);
@@ -852,9 +794,7 @@ pub async fn get_profile_protocol_version(
     if let Some(protocol_version) = profile.protocol_version {
         return Ok(Some(ProtocolVersion::modern(protocol_version)));
     }
-    if let Some(protocol_version) =
-        OLD_PROTOCOL_VERSIONS.get(&profile.game_version)
-    {
+    if let Some(protocol_version) = OLD_PROTOCOL_VERSIONS.get(&profile.game_version) {
         return Ok(Some(*protocol_version));
     }
 
@@ -879,10 +819,9 @@ pub async fn get_profile_protocol_version(
         return Ok(None);
     }
 
-    let version_jar =
-        loader_version.as_ref().map_or(version.id.clone(), |it| {
-            format!("{}-{}", version.id.clone(), it.id.clone())
-        });
+    let version_jar = loader_version.as_ref().map_or(version.id.clone(), |it| {
+        format!("{}-{}", version.id.clone(), it.id.clone())
+    });
 
     let state = State::get().await?;
     let client_path = state
@@ -906,9 +845,7 @@ pub async fn get_server_status(
     address: &str,
     protocol_version: Option<ProtocolVersion>,
 ) -> Result<ServerStatus> {
-    tracing::debug!(
-        "Pinging {address} with protocol version {protocol_version:?}"
-    );
+    tracing::debug!("Pinging {address} with protocol version {protocol_version:?}");
 
     get_server_status_old(address, protocol_version).await
     // get_server_status_new(address, protocol_version).await
@@ -919,11 +856,8 @@ async fn get_server_status_old(
     protocol_version: Option<ProtocolVersion>,
 ) -> Result<ServerStatus> {
     let (original_host, original_port) = parse_server_address(address)?;
-    let (host, port) =
-        resolve_server_address(original_host, original_port).await?;
-    tracing::debug!(
-        "Pinging {address} with protocol version {protocol_version:?}"
-    );
+    let (host, port) = resolve_server_address(original_host, original_port).await?;
+    tracing::debug!("Pinging {address} with protocol version {protocol_version:?}");
     server_ping::get_server_status(
         &(&host as &str, port),
         (original_host, original_port),
@@ -938,9 +872,9 @@ async fn _get_server_status_new(
 ) -> Result<ServerStatus> {
     let (address, port) = match address.rsplit_once(':') {
         Some((addr, port)) => {
-            let port = port.parse::<u16>().map_err(|_err| {
-                Error::from(ErrorKind::InputError("invalid port number".into()))
-            })?;
+            let port = port
+                .parse::<u16>()
+                .map_err(|_err| Error::from(ErrorKind::InputError("invalid port number".into())))?;
             (addr, port)
         }
         None => (address, 25565),
@@ -954,18 +888,18 @@ async fn _get_server_status_new(
         builder = builder.with_protocol_version(version.version as usize)
     }
 
-    let conn = builder.connect().await.map_err(|_err| {
-        Error::from(ErrorKind::InputError("failed to connect to server".into()))
-    })?;
+    let conn = builder
+        .connect()
+        .await
+        .map_err(|_err| Error::from(ErrorKind::InputError("failed to connect to server".into())))?;
 
-    let ping_conn = conn.status().await.map_err(|_err| {
-        Error::from(ErrorKind::InputError("failed to get server status".into()))
-    })?;
+    let ping_conn = conn
+        .status()
+        .await
+        .map_err(|_err| Error::from(ErrorKind::InputError("failed to get server status".into())))?;
     let status = &ping_conn.status;
     let description = match &status.description {
-        ServerDescription::Plain(text) => {
-            serde_json::value::to_raw_value(&text).ok()
-        }
+        ServerDescription::Plain(text) => serde_json::value::to_raw_value(&text).ok(),
         ServerDescription::Object { text } => {
             // TODO: `text` always seems to be empty?
             RawValue::from_string(text.clone()).ok()
@@ -1000,9 +934,10 @@ async fn _get_server_status_new(
     let latency = {
         let start = Instant::now();
         let ping_magic = Utc::now().timestamp_millis().cast_unsigned();
-        ping_conn.ping(ping_magic).await.map_err(|_err| {
-            Error::from(ErrorKind::InputError("failed to do ping".into()))
-        })?;
+        ping_conn
+            .ping(ping_magic)
+            .await
+            .map_err(|_err| Error::from(ErrorKind::InputError("failed to do ping".into())))?;
         start.elapsed().as_millis() as i64
     };
 
