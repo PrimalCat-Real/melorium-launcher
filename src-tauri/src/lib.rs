@@ -1,4 +1,5 @@
 pub mod commands;
+pub mod modpack;
 pub mod modrinth;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -17,7 +18,10 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::download_minecraft,
-            commands::play_minecraft
+            commands::play_minecraft,
+            commands::get_modpack_info,
+            commands::install_or_update_modpack,
+            commands::play_modpack,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

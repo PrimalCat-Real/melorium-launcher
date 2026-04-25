@@ -72,7 +72,6 @@ jobs:
           releaseName: Melorium Launcher ${{ github.ref_name }}
           releaseDraft: true
           prerelease: false
-          createUpdaterArtifacts: true
           args: --target ${{ matrix.platform.rust-target }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
