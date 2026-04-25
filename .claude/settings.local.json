@@ -16,7 +16,8 @@
       "Bash(cp -r \"C:/Projects/code/packages/ariadne/src\" \"c:/Projects/melorium-launcher/packages/ariadne/\")",
       "Bash(cp -r \"C:/Projects/code/packages/async-minecraft-ping/src\" \"c:/Projects/melorium-launcher/packages/async-minecraft-ping/\")",
       "Bash(cp -r \"C:/Projects/code/packages/daedalus/src\" \"c:/Projects/melorium-launcher/packages/daedalus/\")",
-      "Bash(cp -r \"C:/Projects/code/packages/path-util/src\" \"c:/Projects/melorium-launcher/packages/path-util/\")"
+      "Bash(cp -r \"C:/Projects/code/packages/path-util/src\" \"c:/Projects/melorium-launcher/packages/path-util/\")",
+      "Bash(xxd \"c:/Projects/melorium-launcher/src-tauri/.cargo/config.toml\")"
     ]
   }
 }
