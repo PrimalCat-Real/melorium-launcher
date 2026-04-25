@@ -1,7 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "Bash(pnpm exec *)"
+      "Bash(pnpm exec *)",
+      "Bash(pnpm tauri *)",
+      "WebSearch",
+      "WebFetch(domain:v2.tauri.app)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:dev.to)"
     ]
   }
 }

@@ -36,6 +36,11 @@ yarn-error.log*
 # vercel
 .vercel
 
+# tauri signing keys
+.tauri/
+*.key
+*.key.pub
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
