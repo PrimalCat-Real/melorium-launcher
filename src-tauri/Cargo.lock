@@ -97,6 +97,7 @@ dependencies = [
  "bytes",
  "chardetng",
  "chrono",
+ "cidre",
  "daedalus",
  "dashmap",
  "data-url",
@@ -797,6 +798,21 @@ dependencies = [
  "wasm-bindgen",
  "windows-link 0.2.1",
 ]
+
+[[package]]
+name = "cidre"
+version = "0.11.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "257ba26764941d079e5d7232f7ff61fbde7d62e813955e1dd00eb9188cd8078f"
+dependencies = [
+ "cidre-macros",
+]
+
+[[package]]
+name = "cidre-macros"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "82bc2f84c0baaa09299da3a03864491549685912c1e338a54211e00589dc1e4c"
 
 [[package]]
 name = "combine"
