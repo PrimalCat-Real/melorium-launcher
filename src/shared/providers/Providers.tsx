@@ -1,10 +1,13 @@
 import React from 'react'
 import AppInitProvider from './AppInitProvider'
+import AuthGuardProvider from './AuthGuardProvider'
 
 const Providers = ({ children }: { children: React.ReactNode }) => {
     return (
         <AppInitProvider>
-            {children}
+            <AuthGuardProvider>
+                {children}
+            </AuthGuardProvider>
         </AppInitProvider>
 
     )
