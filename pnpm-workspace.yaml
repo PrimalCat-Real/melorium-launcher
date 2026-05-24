@@ -1,5 +1,3 @@
-onlyBuiltDependencies:
-  - "@carbon/icon-helpers"
-  - "@carbon/icons-react"
-  - msw
+ignoredBuiltDependencies:
   - sharp
+  - unrs-resolver
