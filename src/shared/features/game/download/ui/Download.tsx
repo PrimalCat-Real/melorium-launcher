@@ -13,7 +13,15 @@ const Download = () => {
         const unlisten = listen<{ percent: number; speed: string; eta: string; stage: string }>(
             "download_progress",
             (event) => {
-                setDownload({ status: "downloading", ...event.payload });
+                setDownload({
+                    status: "downloading",
+                    barType: "",
+                    completedBarTypes: [],
+                    fileEvents: 0,
+                    downloadedBytes: null,
+                    totalBytes: null,
+                    ...event.payload,
+                });
             },
         );
         return () => { unlisten.then((fn) => fn()); };
