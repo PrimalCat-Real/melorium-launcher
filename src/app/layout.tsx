@@ -5,9 +5,9 @@ import { cn } from "@/modules/shadcn/lib/utils";
 import Providers from "@/shared/providers/Providers";
 import "./globals.css";
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
-const manrope = Manrope({ subsets: ['latin'], variable: '--font-manrope' });
+const manrope = Manrope({ subsets: ['latin'], variable: '--font-sans' });
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,9 +26,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={cn("font-sans", inter.variable, manrope.variable)}>
+    <html lang="en" className={cn("font-sans", inter.variable, manrope.variable, geistSans.variable, geistMono.variable)}>
       <body
-        className={cn(geistSans.variable, geistMono.variable, 'antialiased flex flex-col bg-launcher h-screen border muted-border')}
+        className={cn('antialiased flex flex-col bg-launcher h-screen border muted-border overflow-hidden')}
       >
         <Providers>
           {children}

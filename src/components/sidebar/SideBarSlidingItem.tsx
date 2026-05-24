@@ -15,7 +15,7 @@ const SideBarSlidingItem = ({ activeIndex, itemHeight, className }: SideBarSlidi
             animate={{ y: activeIndex * itemHeight }}
             transition={{ type: "spring", stiffness: 400, damping: 35 }}
         >
-            <div className={cn("h-1/2 translate-y-1/2 w-0.75 bg-border rounded-r-2xl rounded-l-md mx-1")} />
+            <div className={cn("h-1/2 translate-y-1/2 w-0.5 bg-primary/90 rounded-r-2xl rounded-l-md mx-1 shadow-[0_0_4px_1px_var(--color-glow)]")} />
         </motion.div>
     );
 };

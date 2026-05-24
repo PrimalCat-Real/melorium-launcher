@@ -3,7 +3,7 @@ import type { StateCreator } from "zustand";
 export type DownloadStatus =
     | { status: "idle" }
     | { status: "checking" }
-    | { status: "downloading"; percent: number; speed: string; eta: string; stage: string }
+    | { status: "downloading"; percent: number; speed: string; eta: string; stage: string; barType: string; completedBarTypes: string[]; fileEvents: number; downloadedBytes: number | null; totalBytes: number | null }
     | { status: "verifying"; percent: number }
     | { status: "ready" }
     | { status: "error"; message: string };

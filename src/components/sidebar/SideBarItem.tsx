@@ -25,11 +25,11 @@ const SideBarItem = ({ icon: Icon, label, link, className, iconSize, onClick }: 
     return (
         <Link href={link} onClick={onClick} title={label}>
             <Button
-                size='icon-xl'
+                size='icon-none'
                 variant="ghost"
                 className={cn("relative z-10 flex items-center justify-center p-0 transition-all duration-300 rounded-lg", !isActive && "text-primary", isActive && "bg-dim", className)}
             >
-                <Icon size={iconSize} />
+                <Icon style={{ width: iconSize, height: iconSize }} />
             </Button>
         </Link>
     )

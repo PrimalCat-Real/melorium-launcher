@@ -6,14 +6,14 @@ import { useAuthStore } from '@/store/useAuthStore'
 const AuthGuardProvider = ({ children }: { children: ReactNode }) => {
     const router = useRouter()
     const pathname = usePathname()
-    const { login, password } = useAuthStore()
+    const authStatus = useAuthStore((state) => state.authStatus)
 
     useEffect(() => {
         if (pathname === '/login') return
-        if (!login || !password) {
+        if (authStatus !== 'authenticated') {
             router.replace('/login')
         }
-    }, [login, password, pathname, router])
+    }, [authStatus, pathname, router])
 
     return (
         <>

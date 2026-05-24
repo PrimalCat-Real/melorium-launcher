@@ -271,7 +271,18 @@ pub async fn install_minecraft(
         .map_or(8, |it| it.major_version);
     let (java_version, set_java) =
         if let Some(java_version) = get_java_version_from_profile(profile, &version_info).await? {
-            (std::path::PathBuf::from(java_version.path), false)
+            let cached_path = std::path::PathBuf::from(&java_version.path);
+            if cached_path.exists() {
+                (cached_path, false)
+            } else {
+                // Cached Java path no longer exists on disk — re-download
+                tracing::warn!(
+                    "Cached Java path no longer valid: {:?}, re-downloading",
+                    cached_path
+                );
+                let path = crate::modrinth::api::jre::auto_install_java(key).await?;
+                (path, true)
+            }
         } else {
             let path = crate::modrinth::api::jre::auto_install_java(key).await?;
 

@@ -58,6 +58,24 @@ No test suite is currently set up.
 
 Frontend calls `invoke("command_name")` from `@tauri-apps/api/core`. Commands are async Rust functions annotated with `#[tauri::command]` in `commands.rs` and registered in `lib.rs`.
 
+## Download / Game State Statuses
+
+`DownloadStatus` (in `src/store/gamestate/downloadSlice.ts`) describes the full lifecycle:
+
+| Status | Прогресс бар | Когда |
+|---|---|---|
+| `idle` | нет | начальное состояние |
+| `downloading` | да — `percent`, `speed`, `stage` | идёт загрузка файлов модпака |
+| `verifying` | нет | проверка хешей после загрузки, и перед запуском игры |
+| `ready` | нет | всё готово, можно запускать |
+| `error` | нет | ошибка, `message` |
+
+**Правила отображения:**
+- Прогресс бар показывать **только** при `status === 'downloading'`
+- При `verifying` — спиннер-иконка без текста (не писать "Проверка...")
+- При `error` — показать `message`
+- Не делать `|| status === 'checking'` и похожие многосоставные проверки — каждый статус обрабатывается отдельно
+
 ## Key Conventions
 
 - **Icons**: Use `@hugeicons/react` + `@hugeicons/core-free-icons` for icons in main UI; `react-icons/hi2` in sidebar nav config.
@@ -66,3 +84,11 @@ Frontend calls `invoke("command_name")` from `@tauri-apps/api/core`. Commands ar
 - **Path aliases**: `@/` maps to `src/`.
 - **Linting**: Biome (not ESLint). Run `pnpm lint` before committing. Biome also auto-organizes imports.
 - **Package manager**: pnpm.
+- **Shadows**: Never write multi-value `box-shadow` inline in `className` (e.g. `shadow-[0_60px_...]`). Extract them to named classes in `@layer utilities` in `globals.css` (e.g. `.shadow-banner`, `.shadow-glaze`). Colors/tokens → `:root` + `@theme inline`. Utility classes (shadows, custom layouts) → `@layer utilities`.
+- **CSS architecture**: colors as Tailwind tokens (`@theme inline` + `:root`), utility classes (shadows, gradients, layouts) via `@layer utilities` — never in `className` as arbitrary values when reused across components.
+- **Conditional logic**: never use nested ternaries for status/state derivation — use `switch` statements so new cases can be added without restructuring. Plain `if` blocks are also acceptable for 2–3 branches.
+- **Clarify before implementing**: when any design or implementation detail is ambiguous, always ask via `AskUserQuestion` before writing code. Do not guess and do not spend time planning in silence — ask immediately.
+- **Component decomposition**: each distinct UI display element (a stat, a label, a progress bar) gets its own named component file in the feature's `ui/` folder. A parent card should read like a list of named sub-components, not a wall of anonymous divs.
+- **Tailwind v4 shadow arbitrary values**: use `var(--color-X)` syntax, not `theme(colors.X)`. Example: `shadow-[0_0_6px_var(--color-emerald-400)]`. The `theme()` function is Tailwind v3 only.
+- **Prefer canonical Tailwind classes over arbitrary values**: before writing `w-[6px]`, `p-[18px]`, `bg-gradient-to-b`, check if a canonical class exists — e.g. `h-1.5` = 6px, `p-4.5` = 18px, `bg-linear-to-b` (v4). The linter (`suggestCanonicalClasses`) will flag these.
+- **Feature folder placement**: features used on a specific page belong under `features/<page-name>/`. Example: cards on the game/play page go in `features/game/`, not in top-level `features/server/` or `features/battlepass/`.

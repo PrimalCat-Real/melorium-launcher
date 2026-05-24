@@ -6,9 +6,13 @@
 
 @theme inline {
   --color-glow: var(--glow);
+  --color-glow-pink: var(--glow-pink);
+  --color-glow-rosa: var(--glow-rosa);
+  --color-blade: var(--blade);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
+  --font-inter: var(--font-inter);
   --font-mono: var(--font-geist-mono);
   --font-manrope: var(--font-manrope);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -54,13 +58,104 @@
   --color-bg-gradient-from: var(--bg-gradient-from);
   --color-bg-gradient-via: var(--bg-gradient-via);
   --color-bg-gradient-to: var(--bg-gradient-to);
+  --color-dialog-bg-from: var(--dialog-bg-from);
+  --color-dialog-bg-via: var(--dialog-bg-via);
+  --color-dialog-bg-to: var(--dialog-bg-to);
+  --color-dialog-glow-tr: var(--dialog-glow-tr);
+  --color-dialog-glow-bl: var(--dialog-glow-bl);
+  --color-dialog-glow-br: var(--dialog-glow-br);
+  --color-glaze-from: var(--glaze-from);
+  --color-glaze-mid: var(--glaze-mid);
+  --color-glaze-to: var(--glaze-to);
+  --color-shimmer-obsidian-from: var(--shimmer-obsidian-from);
+  --color-shimmer-obsidian-via: var(--shimmer-obsidian-via);
+  --color-shimmer-obsidian-to: var(--shimmer-obsidian-to);
+  --color-shimmer-obsidian-glow: var(--shimmer-obsidian-glow);
+  --color-shimmer-secondary-from: var(--shimmer-secondary-from);
+  --color-shimmer-secondary-via: var(--shimmer-secondary-via);
+  --color-shimmer-secondary-to: var(--shimmer-secondary-to);
+  --color-shimmer-secondary-hover-from: var(--shimmer-secondary-hover-from);
+  --color-shimmer-secondary-hover-via: var(--shimmer-secondary-hover-via);
+  --color-shimmer-secondary-hover-to: var(--shimmer-secondary-hover-to);
+  --animate-rippling: rippling var(--duration) ease-out;
+  @keyframes rippling {
+    0% {
+      opacity: 1;
+    }
+    100% {
+      transform: scale(2);
+      opacity: 0;
+    }
+  }
+  --animate-rainbow: rainbow var(--speed, 2s) infinite linear;
+
+  @keyframes rainbow {
+    0% {
+      background-position: 0%;
+    }
+    100% {
+      background-position: 200%;
+    }
+  }
+
+  --animate-spin: spin 1s linear infinite;
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  --animate-ping: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+
+  @keyframes ping {
+    75%,
+    100% {
+      transform: scale(2);
+      opacity: 0;
+    }
+  }
+
+  --animate-pulse: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+
+  @keyframes pulse {
+    50% {
+      opacity: 0.5;
+    }
+  }
+
+  --animate-bounce: bounce 1s infinite;
+
+  @keyframes bounce {
+    0%,
+    100% {
+      transform: translateY(-25%);
+      animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+    }
+    50% {
+      transform: none;
+      animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+    }
+  }
 }
 
 :root {
   /* ── Sword Glow — deep violet bg, ice blue + hot pink duality ── */
 
+  /* Rainbow button gradient stops: ice cyan ↔ hot purple */
+  --color-1: oklch(0.84 0.12 228);
+  --color-2: oklch(0.73 0.27 318);
+  --color-3: oklch(0.72 0.22 265);
+  --color-4: oklch(0.65 0.22 295);
+  --color-5: oklch(0.75 0.18 245);
+
+  /* Blade — холодный лавандовый (#c4a6ff из HTML-референса) */
+  --blade: oklch(0.78 0.14 288);
+
   /* Два акцента: горячий pурпур и ледяной cyan */
   --glow: oklch(0.73 0.27 318 / 68%);
+  --glow-pink: oklch(72.554% 0.18496 0.678);
+  --glow-rosa: oklch(80.208% 0.12634 356.595);
   --accent: oklch(0.84 0.12 228); /* ice blue — меч */
   --accent-glow: oklch(0.84 0.12 228 / 65%);
   --accent-strong: oklch(0.9 0.1 228);
@@ -116,10 +211,25 @@
   --sidebar-ring: oklch(0.73 0.27 318 / 55%);
 
   /* Glows — розово-пурпурный + ледяной отблеск меча */
-  --launcher-glow-a: oklch(36.476% 0.13394 315.355);
-  /* --launcher-glow-a: oklch(0.73 0.27 318 / 48%); */
-  --launcher-glow-b: oklch(0.84 0.12 228 / 38%); /* ice blue halo */
+  --launcher-glow-a: oklch(0.36 0.22 290 / 38%); /* rgba(90,30,163,0.35) из HTML-референса */
+  --launcher-glow-b: oklch(0.84 0.12 228 / 38%);
   --launcher-glow-c: oklch(0.48 0.2 315 / 28%);
+  --launcher-glow-accent: oklch(36.476% 0.13394 315.355 / 55%); /* старый цвет glow-a, нижний левый угол */
+
+  --dialog-bg-from: #0c0420;
+  --dialog-bg-via: #160830;
+  --dialog-bg-to: #0a0218;
+  --dialog-glow-tr: rgba(214, 88, 200, 0.32);
+  --dialog-glow-bl: rgba(150, 50, 220, 0.3);
+  --dialog-glow-br: rgba(180, 70, 200, 0.18);
+
+  --bento-tile-size: 150px;
+  --bento-tile-gap: 4px;
+  --bento-cols: 4;
+  --bento-rows: 5;
+  --bento-shift-x: 150px; /* + вправо (показывает левую часть арта) */
+  --bento-shift-y: 20px; /* - вверх  (показывает нижнюю часть арта) */
+  --bento-art-scale: 0.8; /* > 1 зум in, < 1 зум out                 */
 
   --bento-grid-from: oklch(0.22 0.11 310 / 90%);
   --bento-grid-to: oklch(0.13 0.09 306 / 95%);
@@ -129,6 +239,28 @@
   --bento-ore-lo: oklch(0.73 0.27 318 / 60%); /* pink ambient */
   --bento-ore-from: oklch(0.35 0.16 312);
   --bento-ore-to: oklch(0.2 0.1 308);
+
+  /* Glaze button — deep violet → hot magenta → pink edge */
+  --glaze-from: oklch(0.35 0.24 305);
+  --glaze-mid: oklch(0.61 0.32 307);
+  --glaze-to: oklch(0.81 0.19 332);
+
+  /* Banner shadow — violet glow + deep black drop */
+  --banner-shadow:
+    0 60px 140px -30px rgba(185, 69, 255, 0.32), 0 30px 80px -20px
+    rgba(0, 0, 0, 0.85);
+
+  /* Shimmer button color stops */
+  --shimmer-obsidian-from: #2a0e4a;
+  --shimmer-obsidian-via: #3d1370;
+  --shimmer-obsidian-to: #5a1ea3;
+  --shimmer-obsidian-glow: #7a2bd0;
+  --shimmer-secondary-from: oklch(0.3 0.17 312);
+  --shimmer-secondary-via: oklch(0.4 0.19 312);
+  --shimmer-secondary-to: oklch(0.48 0.21 314);
+  --shimmer-secondary-hover-from: oklch(0.37 0.19 312);
+  --shimmer-secondary-hover-via: oklch(0.47 0.21 312);
+  --shimmer-secondary-hover-to: oklch(0.55 0.23 314);
 }
 
 /* Single theme — mirrors :root until light mode is added */
@@ -180,7 +312,6 @@
   --sidebar-border: oklch(0.71 0.29 300 / 10%);
   --sidebar-ring: oklch(0.71 0.29 300 / 50%);
 
-  /* --launcher-glow-a: oklch(0.71 0.29 300 / 28%); */
   --launcher-glow-a: #a023e2;
   --launcher-glow-b: oklch(0.58 0.24 300 / 25%);
   --launcher-glow-c: oklch(0.42 0.18 300 / 15%);
@@ -202,7 +333,8 @@
     @apply bg-background text-foreground;
   }
   html {
-    @apply font-sans;
+    font-family: var(--font-sans), var(--font-inter), system-ui, sans-serif;
+    font-feature-settings: "ss01", "cv11";
   }
 }
 
@@ -243,8 +375,166 @@
 }
 
 @layer utilities {
+  .shimmer-overlay {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.25) 50%,
+      transparent 100%
+    );
+  }
+  .shadow-banner {
+    box-shadow: var(--banner-shadow);
+  }
+  .shadow-progress-fill {
+    box-shadow: 0 0 10px var(--color-primary);
+  }
+  .shadow-shimmer-obsidian {
+    box-shadow:
+      0 8px 24px -10px rgba(90, 30, 163, 0.55),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  }
+  .shadow-shimmer-obsidian-hover {
+    box-shadow:
+      0 14px 40px -12px rgba(185, 69, 255, 0.6),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  }
+  .bg-shimmer-obsidian {
+    background: linear-gradient(
+      135deg,
+      var(--color-shimmer-obsidian-from) 0%,
+      var(--color-shimmer-obsidian-via) 50%,
+      var(--color-shimmer-obsidian-to) 100%
+    );
+  }
+  .bg-shimmer-obsidian-hover {
+    background: linear-gradient(
+      135deg,
+      var(--color-shimmer-obsidian-via) 0%,
+      var(--color-shimmer-obsidian-to) 50%,
+      var(--color-shimmer-obsidian-glow) 100%
+    );
+  }
+  .shadow-shimmer-secondary {
+    box-shadow:
+      0 8px 24px -10px oklch(0.42 0.19 312 / 45%),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  }
+  .shadow-shimmer-secondary-hover {
+    box-shadow:
+      0 14px 40px -12px oklch(0.55 0.23 312 / 55%),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  }
+  .bg-shimmer-secondary {
+    background: linear-gradient(
+      135deg,
+      var(--color-shimmer-secondary-from) 0%,
+      var(--color-shimmer-secondary-via) 50%,
+      var(--color-shimmer-secondary-to) 100%
+    );
+  }
+  .bg-shimmer-secondary-hover {
+    background: linear-gradient(
+      135deg,
+      var(--color-shimmer-secondary-hover-from) 0%,
+      var(--color-shimmer-secondary-hover-via) 50%,
+      var(--color-shimmer-secondary-hover-to) 100%
+    );
+  }
   .muted-border {
     @apply border-border/15;
+  }
+
+  /* ── Bento mosaic system ── */
+
+  .bento-mosaic {
+    --tile-size: var(--bento-tile-size);
+    --gap: var(--bento-tile-gap);
+    --cols: var(--bento-cols);
+    --rows: var(--bento-rows);
+    --art-h: calc(
+      (var(--tile-size) * var(--rows) + var(--gap) * (var(--rows) - 1)) *
+      var(--bento-art-scale, 1)
+    );
+    --art-w: calc(var(--art-h) * 1376 / 768);
+    display: grid;
+    grid-template-columns: repeat(4, var(--tile-size));
+    grid-template-rows: repeat(5, var(--tile-size));
+    gap: var(--gap);
+  }
+
+  .bento-art-sword {
+    --tile-art: url("/assets/sword_girl.png");
+  }
+
+  .bento-tile {
+    @apply relative overflow-hidden rounded-2xl bg-no-repeat;
+    background-image: var(--tile-art);
+    background-size: var(--art-w) var(--art-h);
+    --grid-w: calc(
+      var(--tile-size) *
+      var(--cols) +
+      var(--gap) *
+      (var(--cols) - 1)
+    );
+    --grid-h: calc(
+      var(--tile-size) *
+      var(--rows) +
+      var(--gap) *
+      (var(--rows) - 1)
+    );
+    --tile-cx: calc(
+      var(--col) *
+      (var(--tile-size) + var(--gap)) +
+      var(--tile-size) /
+      2 -
+      var(--grid-w) /
+      2
+    );
+    --tile-cy: calc(
+      var(--row) *
+      (var(--tile-size) + var(--gap)) +
+      var(--tile-size) /
+      2 -
+      var(--grid-h) /
+      2
+    );
+    background-position: calc(50% - var(--tile-cx) + var(--bento-shift-x, 0px))
+      calc(50% - var(--tile-cy) + var(--bento-shift-y, 0px));
+  }
+
+  .bento-overlay-pastel {
+    background: linear-gradient(
+      155deg,
+      rgba(255, 255, 255, 0.42) 0%,
+      rgba(232, 200, 255, 0.36) 35%,
+      rgba(214, 130, 230, 0.32) 70%,
+      rgba(170, 90, 215, 0.28) 100%
+    );
+  }
+  .bg-dialog {
+    background:
+      radial-gradient(
+        420px 320px at 100% 0%,
+        var(--dialog-glow-tr),
+        transparent 60%
+      ),
+      radial-gradient(
+        420px 320px at 0% 100%,
+        var(--dialog-glow-bl),
+        transparent 62%
+      ),
+      radial-gradient(
+        380px 280px at 100% 100%,
+        var(--dialog-glow-br),
+        transparent 65%
+      ),
+      linear-gradient(
+        160deg,
+        color-mix(in srgb, var(--dialog-bg-from) 80%, transparent) 0%,
+        color-mix(in srgb, var(--dialog-bg-via) 80%, transparent) 60%,
+        color-mix(in srgb, var(--dialog-bg-to) 80%, transparent) 100%
+      );
   }
   .bg-launcher {
     background:
@@ -267,6 +557,11 @@
         1200px 700px at 10% 110%,
         var(--launcher-glow-a),
         transparent 60%
+      ),
+      radial-gradient(
+        500px 350px at 0% 100%,
+        var(--launcher-glow-accent),
+        transparent 65%
       ),
       linear-gradient(
         160deg,

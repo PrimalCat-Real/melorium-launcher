@@ -1,18 +1,19 @@
-import { cn } from '@/modules/shadcn/lib/utils'
 import type { ReactNode } from 'react'
+import { cn } from '@/modules/shadcn/lib/utils'
+import { COL, ROW } from './bentoPositionMaps'
 
 interface BentoMaskCellProps {
+    index?: number
     className?: string
     children?: ReactNode
-    span?: number
 }
 
-const BentoMaskCell = ({ className, children, span }: BentoMaskCellProps) => {
+const BentoMaskCell = ({ index = 0, className, children }: BentoMaskCellProps) => {
+    const col = index % 4
+    const row = Math.floor(index / 4)
+
     return (
-        <div
-            className={cn('rounded-2xl xl:rounded-4xl bg-white aspect-square relative overflow-hidden', className)}
-            style={span ? { gridColumn: `span ${span}` } : undefined}
-        >
+        <div className={cn('bento-tile', COL[col], ROW[row], className)}>
             {children}
         </div>
     )

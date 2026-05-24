@@ -17,7 +17,14 @@
       "Bash(cp -r \"C:/Projects/code/packages/async-minecraft-ping/src\" \"c:/Projects/melorium-launcher/packages/async-minecraft-ping/\")",
       "Bash(cp -r \"C:/Projects/code/packages/daedalus/src\" \"c:/Projects/melorium-launcher/packages/daedalus/\")",
       "Bash(cp -r \"C:/Projects/code/packages/path-util/src\" \"c:/Projects/melorium-launcher/packages/path-util/\")",
-      "Bash(xxd \"c:/Projects/melorium-launcher/src-tauri/.cargo/config.toml\")"
+      "Bash(xxd \"c:/Projects/melorium-launcher/src-tauri/.cargo/config.toml\")",
+      "PowerShell(\\(Get-ChildItem \"C:\\\\Users\\\\roman\\\\Documents\\\\test\\\\profiles\\\\MeloriumPack\\\\logs\" -ErrorAction SilentlyContinue\\).Count; \\(Get-ChildItem \"C:\\\\Users\\\\roman\\\\Documents\\\\test\\\\profiles\\\\MeloriumPack\\\\crash-reports\" -ErrorAction SilentlyContinue\\).Count)",
+      "Bash(Get-Content \"C:\\\\Users\\\\roman\\\\Documents\\\\test\\\\profiles\\\\MeloriumPack\\\\logs\\\\latest.log\" -Tail 80)",
+      "Read(//c/Projects/code/**)",
+      "Bash(xargs grep -l \"get_loader_version\\\\|loader_versions\\\\|meta_str\\\\|neoforge\")",
+      "Bash(curl -s \"https://launcher-meta.modrinth.com/neo/v0/manifest.json\")",
+      "Bash(python3 -c \"import json,sys; data=json.load\\(sys.stdin\\); gv=[x for x in data['gameVersions'] if x['id']=='1.21.1']; loaders=gv[0]['loaders'] if gv else []; print\\('Total loaders for 1.21.1:', len\\(loaders\\)\\); print\\('First 3:', [l['id'] for l in loaders[:3]]\\); ids=[l['id'] for l in loaders]; print\\('21.1.230 found:', '21.1.230' in ids\\)\")",
+      "Bash(node -e \"const d=JSON.parse\\(require\\('fs'\\).readFileSync\\('/dev/stdin','utf8'\\)\\); const gv=d.gameVersions.find\\(x=>x.id==='1.21.1'\\); console.log\\('Total loaders:',gv?.loaders?.length\\); console.log\\('First 3:',gv?.loaders?.slice\\(0,3\\).map\\(l=>l.id\\)\\); console.log\\('21.1.230:',gv?.loaders?.some\\(l=>l.id==='21.1.230'\\)\\)\")"
     ]
   }
 }
