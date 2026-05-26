@@ -60,6 +60,7 @@ jobs:
         with:
           workspaces: ./src-tauri -> target
           cache-on-failure: true
+          shared-key: release-${{ matrix.platform.rust-target }}
 
       - name: Install frontend dependencies
         run: pnpm install
