@@ -72,7 +72,7 @@ jobs:
         with:
           tagName: ${{ github.event.inputs.tag || github.ref_name }}
           releaseName: Melorium Launcher ${{ github.event.inputs.tag || github.ref_name }}
-          releaseDraft: true
+          releaseDraft: false
           prerelease: false
           args: --target ${{ matrix.platform.rust-target }}
         env:
