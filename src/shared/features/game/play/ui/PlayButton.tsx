@@ -24,9 +24,11 @@ const PlayButton = ({ className }: PlayButtonProps) => {
     const isLaunchingRef = useRef(false)
 
     useEffect(() => {
+        console.log("[play] registering loading listener")
         const unlisten = listen<{ fraction: number | null; message: string }>(
             'loading',
             (event) => {
+                console.log("[play] loading event:", event.payload)
                 if (!isLaunchingRef.current) return
                 const { fraction, message } = event.payload
                 setStage(message)
@@ -38,13 +40,18 @@ const PlayButton = ({ className }: PlayButtonProps) => {
 
     const handlePlay = async () => {
         if (isLaunching) return
+        console.log("[play] handlePlay called, username:", username, "ram:", allocatedRamMb)
         isLaunchingRef.current = true
         setIsLaunching(true)
         setStage('')
         setPercent(null)
         try {
+            console.log("[play] invoking play_modpack...")
             await invoke('play_modpack', { username, memoryMb: allocatedRamMb })
+            console.log("[play] play_modpack completed")
         } catch (err) {
+            console.error("[play] play_modpack failed:", err)
+            console.error("[play] error stringified:", JSON.stringify(err))
             toast.error(String(err))
         } finally {
             isLaunchingRef.current = false

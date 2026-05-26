@@ -10,9 +10,11 @@ const Download = () => {
     const { download, setDownload } = useGameStateStore();
 
     useEffect(() => {
+        console.log("[download] registering download_progress listener");
         const unlisten = listen<{ percent: number; speed: string; eta: string; stage: string }>(
             "download_progress",
             (event) => {
+                console.log("[download] progress event:", event.payload);
                 setDownload({
                     status: "downloading",
                     barType: "",
@@ -28,11 +30,17 @@ const Download = () => {
     }, [setDownload]);
 
     const handleDownload = async () => {
+        console.log("[download] handleDownload called");
         try {
             setDownload({ status: "checking" });
+            console.log("[download] invoking download_minecraft...");
             await invoke("download_minecraft");
+            console.log("[download] download_minecraft completed successfully");
             setDownload({ status: "ready" });
         } catch (error) {
+            console.error("[download] download_minecraft failed:", error);
+            console.error("[download] error type:", typeof error);
+            console.error("[download] error stringified:", JSON.stringify(error));
             setDownload({ status: "error", message: String(error) });
         }
     };
