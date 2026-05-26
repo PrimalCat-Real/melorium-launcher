@@ -4,13 +4,15 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag name for the release'
+        required: true
+        default: 'v0.1.8'
 
 permissions:
   contents: write
-
-concurrency:
-  group: release
-  cancel-in-progress: false
 
 jobs:
   release:
@@ -68,8 +70,8 @@ jobs:
       - name: Build and publish release
         uses: tauri-apps/tauri-action@v0
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: Melorium Launcher ${{ github.ref_name }}
+          tagName: ${{ github.event.inputs.tag || github.ref_name }}
+          releaseName: Melorium Launcher ${{ github.event.inputs.tag || github.ref_name }}
           releaseDraft: true
           prerelease: false
           args: --target ${{ matrix.platform.rust-target }}
