@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Melorium Launcher is a Tauri v2 desktop app — a Minecraft launcher with a custom UI. The frontend is Next.js 16 + React 19 + Tailwind CSS v4, rendered inside a Tauri WebView. The backend is Rust (`src-tauri/`) and uses a heavily customized fork of the Modrinth launcher library for profile management, downloading, and launching Minecraft.
 
+> **ВАЖНО: Tauri v2, не v1.** API, плагины и структура команд отличаются от первой версии. Не использовать документацию, примеры или паттерны Tauri v1. Плагины подключаются через `tauri-plugin-*` крейты и `.plugin(...)` в `lib.rs`. Команды регистрируются через `tauri::generate_handler!` и вызываются на фронтенде через `invoke` из `@tauri-apps/api/core` (не из `@tauri-apps/api`).
+
 ## Commands
 
 ### Frontend (Next.js)
