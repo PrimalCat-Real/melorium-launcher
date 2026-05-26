@@ -27,6 +27,7 @@ jobs:
           - os: macos-latest
             rust-target: aarch64-apple-darwin
 
+    environment: BUILD
     runs-on: ${{ matrix.platform.os }}
 
     steps:
