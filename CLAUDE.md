@@ -36,18 +36,16 @@ No test suite is currently set up.
 
 ### Frontend (`src/`)
 
-- **`src/app/`** — Next.js App Router pages. Each route corresponds to a sidebar section: `/` (play), `/mods`, `/settings`, `/news`, `/maps`, `/forum`, `/shop`, `/battlepass`, `/cosmetics`, `/profile`.
-- **`src/features/sidebar/`** — Sidebar feature: `constants/nav-config.tsx` defines the navigation groups and items, `components/` has the actual UI pieces (`IconRail`, `SidebarDetail`, `NavButton`, etc.).
-- **`src/components/sidebar/SideBar.tsx`** — Entry point that composes `IconRail` + `SidebarDetail`.
-- **`src/store/`** — Zustand store. `useUIStore.ts` combines slices with `persist` middleware. `sidebar/sidebarSlice.ts` manages which nav group is active.
-- **`src/modules/`** — Vendored/local UI libraries:
-  - `shadcn/` — shadcn/ui components and `cn()` utility
-  - `primalui/` — Custom card component (`CardGradientBorder`)
-- **`src/shared/`** — Shared UI primitives (currently `NavItem`).
+- **`src/app/`** — Next.js App Router pages. Each route corresponds to a sidebar section.
+- **`src/features/`** — Feature folders. Each feature has `components/` for UI pieces and `constants/` for config.
+- **`src/components/`** — Stateful grouper components (`'use client'`, own state, compose features).
+- **`src/store/`** — Zustand store with slice pattern and `persist` middleware.
+- **`src/modules/`** — Vendored/local UI libraries. Contents grow over time — always check what's available before writing UI from scratch.
+- **`src/shared/`** — Shared reusable components and hooks, organized by feature.
 
 ### Backend (`src-tauri/src/`)
 
-- **`commands.rs`** — Tauri commands exposed to the frontend: `download_minecraft` and `play_minecraft`. These are the IPC bridge invoked via `invoke()` in React.
+- **`commands.rs`** — Tauri commands exposed to the frontend via `invoke()` in React.
 - **`lib.rs`** — Tauri app setup; registers commands via `invoke_handler`.
 - **`modrinth/`** — Minecraft launcher engine (forked from Modrinth app):
   - `state/` — Global app state: profiles, settings, auth, DB (SQLite via sqlx), process tracking, Discord RPC, friends.
@@ -80,17 +78,64 @@ Frontend calls `invoke("command_name")` from `@tauri-apps/api/core`. Commands ar
 
 ## Key Conventions
 
-- **Icons**: Use `@hugeicons/react` + `@hugeicons/core-free-icons` for icons in main UI; `react-icons/hi2` in sidebar nav config.
-- **Styling**: Tailwind CSS v4 with CSS custom properties for theming. Color tokens like `var(--color-primary)`, `var(--color-secondary)` are defined in `globals.css`. Use `cn()` from `@/modules/shadcn/lib/utils` for class merging.
-- **State**: Zustand with slice pattern. Add new slices in `src/store/` and compose them in `useUIStore.ts`.
-- **Path aliases**: `@/` maps to `src/`.
-- **Linting**: Biome (not ESLint). Run `pnpm lint` before committing. Biome also auto-organizes imports.
+### Component syntax
+- **Always arrow functions** for components: `const Foo = () => (...)`. Never `function Foo() {}`.
+- **No `'use client'` in page.tsx** — pages are server components. Put `'use client'` only in stateful grouper components.
+- **Component decomposition**: each distinct UI display element gets its own named file in the feature's `ui/` folder. A parent should read like a list of named sub-components, not a wall of anonymous divs.
+- **Don't decompose plain layout** into wrapper components. `SettingsRow`, `SettingsSection` etc. are over-engineering — use plain divs with Tailwind classes instead.
+- **File structure**:
+  - `src/components/<context>/` — stateful groupers (`'use client'`, own state, compose features)
+  - `src/shared/features/<feature>/ui/` — reusable presentational components
+  - `src/shared/features/<feature>/lib/` — hooks and utilities for the feature
+  - `src/app/(app)/<page>/page.tsx` — only semantic section components, no state, no `'use client'`
+
+### Styling
+- **`cn()`** from `@/modules/shadcn/lib/utils` for all className construction. Never template literals or string concatenation.
+- **Long class lists** split across lines by semantic group: layout, visual/color, conditional.
+- **No inline `style={{ }}`** in TSX. Use Tailwind arbitrary classes. For dynamic positions/sizes that can't be expressed statically, use CSS custom properties via a wrapper element.
+- **Gaps use powers of 2**: `gap-2`, `gap-4`, `gap-8`. Never `gap-1.5`, `gap-2.5`, `gap-3.5`.
+- **CSS architecture**: colors/tokens → `:root` + `@theme inline`. Utility classes (shadows, gradients, layouts) → `@layer utilities`. Never write multi-value arbitrary values inline in `className`.
+- **Shadows**: extract to named classes in `@layer utilities` (e.g. `.shadow-banner`, `.shadow-progress-fill`). Never inline `shadow-[0_60px_...]`.
+- **Tailwind v4**: use `bg-linear-to-r` not `bg-gradient-to-r`, `var(--color-X)` not `theme(colors.X)` in arbitrary values.
+- **Prefer canonical Tailwind classes** over arbitrary values: `h-1.5` = 6px, `p-4.5` = 18px, etc. The linter (`suggestCanonicalClasses`) will flag violations.
+
+### Typography
+- **Never write uppercase letters in JSX**. Use Tailwind `uppercase` class instead: `<span className='uppercase'>текст</span>`.
+- **Field/section labels**: `font-manrope font-semibold uppercase tracking-widest text-xs text-muted-foreground`.
+
+### Icons
+- Use **`react-icons`** exclusively for all icons. Never use `HugeiconsIcon` or `@hugeicons/react`.
+- Common packages: `react-icons/hi2` (Heroicons v2), `react-icons/fc` (Google etc.), `react-icons/bs` (Discord etc.), `react-icons/pi`, `react-icons/tb`.
+- Always type icon props as `IconType` from `react-icons`.
+
+### Buttons and interactive elements
+- Never use plain `<button>`. Always use `Button` from `@/modules/shadcn/components/ui/button`.
+- Variants: `default` (primary), `outline` (secondary), `ghost` (link-style inline), `destructive` (danger actions).
+
+### Forms and validation
+- No inline error text below inputs. Error feedback: `aria-invalid={hasError}` on the Input (auto-styles `border-destructive`) + `toast.error(...)` on submit.
+
+### Loading and progress states
+- Never use text like "Проверка..." for loading states. Use a spinning icon instead.
+- Never use `...` (ellipsis) in loading/progress text.
+- **Progress bars** use gradient: `bg-linear-to-r from-accent to-primary shadow-progress-fill`. Never plain `bg-primary` for a progress fill.
+- Each status handled separately with `switch`. Never `|| status === 'checking'` style multi-conditions.
+
+### UI components — always use the library
+- Before writing any UI element from scratch, **search `src/modules/` for an existing component**. The set of modules is not fixed — new ones can be added at any time, so always search rather than assuming.
+- Prefer animated/enhanced variants over plain primitives when both exist in `src/modules/`.
+- **If a needed component doesn't exist in `src/modules/`**, tell the user and suggest installing it (e.g. `pnpm dlx shadcn@latest add <name>`) rather than building it from scratch.
+- **Never modify files inside `src/modules/`** — those are library files, not project code.
+
+### State management
+- Zustand with slice pattern. Add new slices in `src/store/` and compose them in the relevant store file.
+- Persist with `persist` middleware — values may be `undefined` before hydration. Always use `?? fallback` when reading from persisted store.
+
+### Misc
+- **Conditional logic**: never nested ternaries for state — use `switch` or `if/else`.
+- **Clarify before implementing**: when design or implementation detail is ambiguous, ask via `AskUserQuestion` immediately.
+- **No section comments** (`/* --- Section --- */`) or padding spaces to align values.
+- **No single-letter variables** (`i`, `e`, `v`) — use descriptive names.
 - **Package manager**: pnpm.
-- **Shadows**: Never write multi-value `box-shadow` inline in `className` (e.g. `shadow-[0_60px_...]`). Extract them to named classes in `@layer utilities` in `globals.css` (e.g. `.shadow-banner`, `.shadow-glaze`). Colors/tokens → `:root` + `@theme inline`. Utility classes (shadows, custom layouts) → `@layer utilities`.
-- **CSS architecture**: colors as Tailwind tokens (`@theme inline` + `:root`), utility classes (shadows, gradients, layouts) via `@layer utilities` — never in `className` as arbitrary values when reused across components.
-- **Conditional logic**: never use nested ternaries for status/state derivation — use `switch` statements so new cases can be added without restructuring. Plain `if` blocks are also acceptable for 2–3 branches.
-- **Clarify before implementing**: when any design or implementation detail is ambiguous, always ask via `AskUserQuestion` before writing code. Do not guess and do not spend time planning in silence — ask immediately.
-- **Component decomposition**: each distinct UI display element (a stat, a label, a progress bar) gets its own named component file in the feature's `ui/` folder. A parent card should read like a list of named sub-components, not a wall of anonymous divs.
-- **Tailwind v4 shadow arbitrary values**: use `var(--color-X)` syntax, not `theme(colors.X)`. Example: `shadow-[0_0_6px_var(--color-emerald-400)]`. The `theme()` function is Tailwind v3 only.
-- **Prefer canonical Tailwind classes over arbitrary values**: before writing `w-[6px]`, `p-[18px]`, `bg-gradient-to-b`, check if a canonical class exists — e.g. `h-1.5` = 6px, `p-4.5` = 18px, `bg-linear-to-b` (v4). The linter (`suggestCanonicalClasses`) will flag these.
-- **Feature folder placement**: features used on a specific page belong under `features/<page-name>/`. Example: cards on the game/play page go in `features/game/`, not in top-level `features/server/` or `features/battlepass/`.
+- **Linting**: Biome (not ESLint). `pnpm lint` before committing.
+- **Path aliases**: `@/` maps to `src/`.
