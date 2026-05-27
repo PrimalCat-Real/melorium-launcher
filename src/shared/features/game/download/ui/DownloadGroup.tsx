@@ -4,29 +4,20 @@ import { listen } from "@tauri-apps/api/event";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Dialog, DialogContent } from "@/modules/shadcn/components/ui/dialog";
-import { cn } from "@/modules/shadcn/lib/utils";
 import { useGameStateStore } from "@/store/useGameStateStore";
 import { isModpackPresent } from "../libs/checkInstall";
 import PlayButton from "../../play/ui/PlayButton";
+import UpdateButton from "../../update/ui/UpdateButton";
 import DownloadButton from "./DownloadButton";
 import PathSelector from "./path-selector/PathSelectorDialog";
 
 const DownloadGroup = () => {
   const [open, setOpen] = useState(false);
-  const { setDownload, rawPath } = useGameStateStore();
   const download = useGameStateStore((state) => state.download);
+  const modpack = useGameStateStore((state) => state.modpack);
+  const { setDownload, setModpack, rawPath } = useGameStateStore();
   const fractionHistoryRef = useRef<{ time: number; fraction: number }[]>([]);
   const speedBytesRef = useRef<{ time: number; bytes: number } | null>(null);
-
-  useEffect(() => {
-    invoke<{ isInstalled: boolean; needsUpdate: boolean }>("get_modpack_info")
-      .then((info) => {
-        if (info.isInstalled && !info.needsUpdate) {
-          setDownload({ status: "ready" });
-        }
-      })
-      .catch(() => {});
-  }, [setDownload]);
 
   useEffect(() => {
     const unlisten = listen<{
@@ -150,6 +141,10 @@ const DownloadGroup = () => {
     setOpen(false);
     fractionHistoryRef.current = [];
     speedBytesRef.current = null;
+    const remoteVersion =
+      modpack.status === "not_installed" || modpack.status === "update_available"
+        ? modpack.remoteVersion
+        : "";
     setDownload({
       status: "downloading",
       percent: 0,
@@ -168,7 +163,39 @@ const DownloadGroup = () => {
         path: rawPath,
         force: !filesPresent,
       });
-      setDownload({ status: "ready" });
+      setModpack({ status: "ready", version: remoteVersion });
+      setDownload({ status: "idle" });
+    } catch (err) {
+      setDownload({ status: "idle" });
+      toast.error(String(err));
+    }
+  };
+
+  const handleUpdate = async () => {
+    if (!rawPath) {
+      setOpen(true);
+      return;
+    }
+    fractionHistoryRef.current = [];
+    speedBytesRef.current = null;
+    const remoteVersion =
+      modpack.status === "update_available" ? modpack.remoteVersion : "";
+    setDownload({
+      status: "downloading",
+      percent: 0,
+      speed: "",
+      eta: "",
+      stage: "Начало обновления...",
+      barType: "",
+      completedBarTypes: [],
+      fileEvents: 0,
+      downloadedBytes: null,
+      totalBytes: null,
+    });
+    try {
+      await invoke("install_or_update_modpack", { path: rawPath, force: false });
+      setModpack({ status: "ready", version: remoteVersion });
+      setDownload({ status: "idle" });
     } catch (err) {
       setDownload({ status: "idle" });
       toast.error(String(err));
@@ -180,26 +207,56 @@ const DownloadGroup = () => {
   const isBusy = isDownloading || isVerifying;
   const percent = isDownloading ? Math.round(download.percent) : null;
 
-  const isReady = download.status === "ready";
+  const renderAction = () => {
+    if (isBusy) {
+      return (
+        <DownloadButton
+          variant="obsidian"
+          isBusy
+          percent={percent}
+          className="font-bold py-6 rounded-lg shadow-2xl pointer-events-none w-full"
+        />
+      );
+    }
+    switch (modpack.status) {
+      case "ready":
+        return <PlayButton className="w-full" />;
+      case "update_available":
+        return (
+          <UpdateButton
+            variant="obsidian"
+            className="font-bold py-6 rounded-lg shadow-2xl w-full"
+            onClick={handleUpdate}
+          >
+            <span className="flex gap-2 uppercase tracking-wide">Обновить</span>
+          </UpdateButton>
+        );
+      case "not_installed":
+        return (
+          <DownloadButton
+            variant="obsidian"
+            className="font-bold py-6 rounded-lg shadow-2xl w-full"
+            onClick={() => setOpen(true)}
+          >
+            <span className="flex gap-2 uppercase tracking-wide">Установить</span>
+          </DownloadButton>
+        );
+      default:
+        return (
+          <DownloadButton
+            variant="obsidian"
+            disabled
+            className="font-bold py-6 rounded-lg shadow-2xl w-full pointer-events-none"
+          >
+            <span className="flex gap-2 uppercase tracking-wide">Установить</span>
+          </DownloadButton>
+        );
+    }
+  };
 
   return (
     <div className="flex flex-col gap-2">
-      {isReady ? (
-        <PlayButton className="w-full" />
-      ) : (
-        <DownloadButton
-          variant={"obsidian"}
-          isBusy={isBusy}
-          percent={percent}
-          className={cn(
-            "font-bold py-6 rounded-lg shadow-2xl",
-            isBusy && "pointer-events-none",
-          )}
-          onClick={isBusy ? undefined : () => setOpen(true)}
-        >
-          <span className="flex gap-2 uppercase tracking-wide">Установить</span>
-        </DownloadButton>
-      )}
+      {renderAction()}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="h-72" showCloseButton={false}>

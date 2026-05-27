@@ -1,14 +1,23 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 import { createDownloadSlice, type DownloadSlice } from "./gamestate/downloadSlice";
 import { createInstallSlice, type InstallSlice } from "./gamestate/installSlice";
 import { createLaunchSlice, type LaunchSlice } from "./gamestate/launchSlice";
-import { createUpdateSlice, type UpdateSlice } from "./gamestate/updateSlice";
+import { createModpackSlice, type ModpackSlice } from "./gamestate/modpackSlice";
 
-type GameStateStore = DownloadSlice & UpdateSlice & LaunchSlice & InstallSlice;
+type GameStateStore = DownloadSlice & ModpackSlice & LaunchSlice & InstallSlice;
 
-export const useGameStateStore = create<GameStateStore>()((...args) => ({
-  ...createDownloadSlice(...args),
-  ...createUpdateSlice(...args),
-  ...createLaunchSlice(...args),
-  ...createInstallSlice(...args),
-}));
+export const useGameStateStore = create<GameStateStore>()(
+    persist(
+        (...args) => ({
+            ...createDownloadSlice(...args),
+            ...createModpackSlice(...args),
+            ...createLaunchSlice(...args),
+            ...createInstallSlice(...args),
+        }),
+        {
+            name: "game-state",
+            partialize: (state) => ({ rawPath: state.rawPath }),
+        },
+    ),
+);

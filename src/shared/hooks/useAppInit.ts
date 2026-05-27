@@ -1,5 +1,4 @@
 "use client";
-import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
   check as checkTauriUpdate,
@@ -8,7 +7,6 @@ import {
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { useUpdateStore } from "@/store/useUpdateStore";
-import { message } from "@tauri-apps/plugin-dialog";
 
 type CheckFn = () => Promise<void>;
 
@@ -66,30 +64,7 @@ const checkLauncherUpdate: CheckFn = async () => {
   }
 };
 
-const checkGameUpdate: CheckFn = async () => {
-  const { setUpdate } = useUpdateStore.getState();
-  try {
-    setUpdate({ status: "checking" });
-    const result = await invoke<{
-      available: boolean;
-      version?: string;
-      changelog?: string;
-    }>("check_game_update");
-    if (result.available && result.version) {
-      setUpdate({
-        status: "available",
-        version: result.version,
-        changelog: result.changelog,
-      });
-    } else {
-      setUpdate({ status: "up_to_date" });
-    }
-  } catch (error) {
-    setUpdate({ status: "error", message: String(error) });
-  }
-};
-
-const CHECKS: CheckFn[] = [checkLauncherUpdate, checkGameUpdate];
+const CHECKS: CheckFn[] = [checkLauncherUpdate];
 
 export const useAppInit = () => {
   const initialized = useRef(false);
