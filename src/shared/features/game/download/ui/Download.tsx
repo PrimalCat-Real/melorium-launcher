@@ -10,11 +10,11 @@ const Download = () => {
     const { download, setDownload } = useGameStateStore();
 
     useEffect(() => {
-        console.log("[download] registering download_progress listener");
+        console.log("[download] registering download_progress listener"); // TODO: remove debug log
         const unlisten = listen<{ percent: number; speed: string; eta: string; stage: string }>(
             "download_progress",
             (event) => {
-                console.log("[download] progress event:", event.payload);
+                console.log("[download] progress event:", event.payload); // TODO: remove debug log
                 setDownload({
                     status: "downloading",
                     barType: "",
@@ -30,17 +30,17 @@ const Download = () => {
     }, [setDownload]);
 
     const handleDownload = async () => {
-        console.log("[download] handleDownload called");
+        console.log("[download] handleDownload called"); // TODO: remove debug log
         try {
             setDownload({ status: "checking" });
-            console.log("[download] invoking download_minecraft...");
+            console.log("[download] invoking download_minecraft..."); // TODO: remove debug log
             await invoke("download_minecraft");
-            console.log("[download] download_minecraft completed successfully");
+            console.log("[download] download_minecraft completed successfully"); // TODO: remove debug log
             setDownload({ status: "ready" });
         } catch (error) {
-            console.error("[download] download_minecraft failed:", error);
-            console.error("[download] error type:", typeof error);
-            console.error("[download] error stringified:", JSON.stringify(error));
+            console.error("[download] download_minecraft failed:", error); // TODO: remove debug log
+            console.error("[download] error type:", typeof error); // TODO: remove debug log
+            console.error("[download] error stringified:", JSON.stringify(error)); // TODO: remove debug log
             setDownload({ status: "error", message: String(error) });
         }
     };

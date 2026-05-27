@@ -8,6 +8,7 @@ import {
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { useUpdateStore } from "@/store/useUpdateStore";
+import { message } from "@tauri-apps/plugin-dialog";
 
 type CheckFn = () => Promise<void>;
 
@@ -15,16 +16,18 @@ let readyUpdate: Update | null = null;
 
 const checkLauncherUpdate: CheckFn = async () => {
   const { setLauncherUpdate } = useUpdateStore.getState();
-  console.log("[launcher-update] checking");
+  console.log("[launcher-update] checking"); // TODO: remove debug log
   try {
     const update = await checkTauriUpdate();
-    console.log("[launcher-update] raw response:", update);
+    console.log("[launcher-update] raw response:", update); // TODO: remove debug log
     if (!update) {
-      console.log("[launcher-update] up to date");
+      console.log("[launcher-update] up to date"); // TODO: remove debug log
       return;
     }
-
-    console.log("[launcher-update] update available:", update.version);
+    toast.info(`Доступна версия ${update.version}`, {
+      description: "Обновление установится при закрытии лаунчера",
+    });
+    console.log("[launcher-update] update available:", update.version); // TODO: remove debug log
     setLauncherUpdate({
       available: true,
       version: update.version,
@@ -34,10 +37,7 @@ const checkLauncherUpdate: CheckFn = async () => {
     await update.download();
     readyUpdate = update;
 
-    console.log("[launcher-update] downloaded, will install on close");
-    toast.info(`Доступна версия ${update.version}`, {
-      description: "Обновление установится при закрытии лаунчера",
-    });
+    console.log("[launcher-update] downloaded, will install on close"); // TODO: remove debug log
 
     const win = getCurrentWindow();
     win.onCloseRequested(async (event) => {

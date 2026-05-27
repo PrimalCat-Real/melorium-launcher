@@ -34,7 +34,7 @@ const DownloadGroup = () => {
       message: string;
       event: { type: string };
     }>("loading", (event) => {
-      console.log("[loading]", event.payload);
+      console.log("[loading]", event.payload); // TODO: remove debug log
       const payload = event.payload as {
         fraction: number | null;
         message: string;

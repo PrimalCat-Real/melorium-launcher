@@ -24,11 +24,11 @@ const PlayButton = ({ className }: PlayButtonProps) => {
     const isLaunchingRef = useRef(false)
 
     useEffect(() => {
-        console.log("[play] registering loading listener")
+        console.log("[play] registering loading listener") // TODO: remove debug log
         const unlisten = listen<{ fraction: number | null; message: string }>(
             'loading',
             (event) => {
-                console.log("[play] loading event:", event.payload)
+                console.log("[play] loading event:", event.payload) // TODO: remove debug log
                 if (!isLaunchingRef.current) return
                 const { fraction, message } = event.payload
                 setStage(message)
@@ -40,18 +40,18 @@ const PlayButton = ({ className }: PlayButtonProps) => {
 
     const handlePlay = async () => {
         if (isLaunching) return
-        console.log("[play] handlePlay called, username:", username, "ram:", allocatedRamMb)
+        console.log("[play] handlePlay called, username:", username, "ram:", allocatedRamMb) // TODO: remove debug log
         isLaunchingRef.current = true
         setIsLaunching(true)
         setStage('')
         setPercent(null)
         try {
-            console.log("[play] invoking play_modpack...")
+            console.log("[play] invoking play_modpack...") // TODO: remove debug log
             await invoke('play_modpack', { username, memoryMb: allocatedRamMb })
-            console.log("[play] play_modpack completed")
+            console.log("[play] play_modpack completed") // TODO: remove debug log
         } catch (err) {
-            console.error("[play] play_modpack failed:", err)
-            console.error("[play] error stringified:", JSON.stringify(err))
+            console.error("[play] play_modpack failed:", err) // TODO: remove debug log
+            console.error("[play] error stringified:", JSON.stringify(err)) // TODO: remove debug log
             toast.error(String(err))
         } finally {
             isLaunchingRef.current = false
