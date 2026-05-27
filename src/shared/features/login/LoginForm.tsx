@@ -1,7 +1,7 @@
 'use client'
 import { useForm } from '@tanstack/react-form'
 import { useRouter } from 'next/navigation'
-import { type FormEvent, useState } from 'react'
+import { type FormEvent } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import { useAuthStore } from '@/store/useAuthStore'
@@ -10,14 +10,12 @@ import NickField from './ui/NickField'
 import OAuthButtons from './ui/OAuthButtons'
 import PasswordField from './ui/PasswordField'
 import RegisterLink from './ui/RegisterLink'
-import RememberRow from './ui/RememberRow'
 import SubmitButton from './ui/SubmitButton'
 
 const LoginForm = () => {
     const router = useRouter()
     const setLogin = useAuthStore(state => state.setLogin)
     const setAuthStatus = useAuthStore(state => state.setAuthStatus)
-    const [remember, setRemember] = useState(false)
 
     const form = useForm({
         defaultValues: { login: '', password: '' },
@@ -69,7 +67,6 @@ const LoginForm = () => {
                 )}
             </form.Field>
 
-            <RememberRow checked={remember} onCheckedChange={setRemember} />
             <SubmitButton />
             <FormDivider />
             <OAuthButtons />
