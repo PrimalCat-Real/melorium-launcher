@@ -134,7 +134,8 @@ Frontend calls `invoke("command_name")` from `@tauri-apps/api/core`. Commands ar
 ### Misc
 - **Conditional logic**: never nested ternaries for state — use `switch` or `if/else`.
 - **Clarify before implementing**: when design or implementation detail is ambiguous, ask via `AskUserQuestion` immediately.
-- **No section comments** (`/* --- Section --- */`) or padding spaces to align values.
+- **No section comments** (`/* --- Section --- */`).
+- **Never align values with spaces or tabs.** No column-padding like `foo:     bar`, `baz:  qux` — each property on its own line, one space after the colon, nothing more. This applies everywhere: TypeScript types, object literals, CSS-in-JS, union types, comments. No exceptions.
 - **No single-letter variables** (`i`, `e`, `v`) — use descriptive names.
 - **Package manager**: pnpm.
 - **Linting**: Biome (not ESLint). `pnpm lint` before committing.
