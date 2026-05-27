@@ -36,7 +36,6 @@ const SideBar = () => {
                     <SideBarItem
                         key={item.id}
                         {...item}
-                        isActive={item.id === activeId}
                         iconSize={22}
                         className="w-12 h-12"
                         onClick={() => setActiveId(item.id)}
