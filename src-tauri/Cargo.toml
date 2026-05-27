@@ -79,7 +79,6 @@ thiserror = "1.0.64"
 tokio = { version = "1.47.1", features = ["fs", "io-util", "macros", "net", "process", "sync", "time"] }
 tokio-util = { version = "0.7.16", features = ["compat", "io", "io-util", "time"] }
 tracing = "0.1.41"
-tracing-log = "0.2"
 tracing-error = "0.2.1"
 tracing-subscriber = { version = "0.3.20", features = ["chrono", "env-filter"] }
 url = { version = "2.5.7", features = ["serde"] }
