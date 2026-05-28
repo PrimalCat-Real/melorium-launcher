@@ -205,15 +205,27 @@ pub fn is_modpack_present(path: String) -> bool {
 
 #[tauri::command]
 pub async fn install_or_update_modpack(app_handle: tauri::AppHandle, path: String, force: bool) -> Result<(), String> {
-    info!("Initializing modrinth state for modpack install/update...");
-    let _ = crate::modrinth::EventState::init(app_handle.clone()).await;
-    let _ = State::init("com.melorium.launcher".to_string()).await;
+    info!("install_or_update_modpack: start, path={path:?} force={force}");
+
+    if let Err(err) = crate::modrinth::EventState::init(app_handle.clone()).await {
+        tracing::warn!("install_or_update_modpack: EventState::init failed: {err}");
+    }
+
+    if let Err(err) = State::init("com.melorium.launcher".to_string()).await {
+        tracing::error!("install_or_update_modpack: State::init failed: {err}");
+        return Err(err.to_string());
+    }
+    info!("install_or_update_modpack: State ready");
 
     let mut settings = crate::modrinth::settings::get().await.unwrap_or_default();
+    info!("install_or_update_modpack: got settings, setting custom_dir");
     settings.custom_dir = Some(path);
-    crate::modrinth::settings::set(settings)
-        .await
-        .map_err(|err| err.to_string())?;
+
+    if let Err(err) = crate::modrinth::settings::set(settings).await {
+        tracing::error!("install_or_update_modpack: settings::set failed: {err}");
+        return Err(err.to_string());
+    }
+    info!("install_or_update_modpack: settings saved, calling install_or_update");
 
     modpack::install_or_update(modpack::PROFILE_NAME, force).await
 }
