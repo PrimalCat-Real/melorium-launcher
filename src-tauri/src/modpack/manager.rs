@@ -125,8 +125,10 @@ pub async fn install_or_update(profile_name: &str, force: bool) -> Result<(), St
     let response = reqwest::get(&manifest.mrpack_url)
         .await
         .map_err(|err| format!("Failed to download mrpack: {err}"))?;
+    info!("mrpack HTTP response status={}", response.status());
 
     let total_bytes = response.content_length().unwrap_or(0);
+    info!("mrpack content_length={total_bytes}");
 
     let loading_bar = init_loading(
         LoadingBarType::PackDownload {

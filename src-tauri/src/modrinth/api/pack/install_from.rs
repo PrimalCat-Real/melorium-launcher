@@ -1,3 +1,5 @@
+use tracing::info;
+
 use crate::modrinth::State;
 use crate::modrinth::data::ModLoader;
 use crate::modrinth::event::emit::{emit_loading, init_loading};
@@ -307,7 +309,9 @@ pub async fn generate_pack_from_file(
     path: PathBuf,
     profile_path: String,
 ) -> crate::modrinth::Result<CreatePack> {
+    info!("generate_pack_from_file: reading {path:?}");
     let file = io::read(&path).await?;
+    info!("generate_pack_from_file: read {} bytes", file.len());
     Ok(CreatePack {
         file: bytes::Bytes::from(file),
         description: CreatePackDescription {
@@ -328,8 +332,9 @@ pub async fn set_profile_information(
     description: &CreatePackDescription,
     backup_name: &str,
     dependencies: &HashMap<PackDependency, String>,
-    ignore_lock: bool, // do not change locked status
+    ignore_lock: bool,
 ) -> crate::modrinth::Result<()> {
+    info!("set_profile_information: profile={profile_path} dependencies={dependencies:?}");
     let mut game_version: Option<&String> = None;
     let mut mod_loader = None;
     let mut loader_version = None;
@@ -364,6 +369,7 @@ pub async fn set_profile_information(
     };
 
     let mod_loader = mod_loader.unwrap_or(ModLoader::Vanilla);
+    info!("set_profile_information: game_version={game_version} mod_loader={mod_loader:?}");
     let loader_version = if mod_loader != ModLoader::Vanilla {
         crate::modrinth::launcher::get_loader_version_from_profile(
             game_version,
@@ -374,7 +380,7 @@ pub async fn set_profile_information(
     } else {
         None
     };
-    // Sets values in profile
+    info!("set_profile_information: loader_version={loader_version:?}, editing profile");
     crate::modrinth::api::profile::edit(&profile_path, |prof| {
         prof.name = description
             .override_title

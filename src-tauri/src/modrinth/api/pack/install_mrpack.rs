@@ -1,3 +1,5 @@
+use tracing::{info, warn};
+
 use crate::modrinth::event::LoadingBarType;
 use crate::modrinth::event::emit::{
     emit_loading, init_or_edit_loading, loading_try_for_each_concurrent,
@@ -30,7 +32,8 @@ pub async fn install_zipped_mrpack(
     location: CreatePackLocation,
     profile_path: String,
 ) -> crate::modrinth::Result<String> {
-    // Get file from description
+    info!("install_zipped_mrpack: profile={profile_path}");
+
     let create_pack: CreatePack = match location {
         CreatePackLocation::FromVersionId {
             project_id,
@@ -38,6 +41,7 @@ pub async fn install_zipped_mrpack(
             title,
             icon_url,
         } => {
+            info!("install_zipped_mrpack: loading from version_id={version_id}");
             generate_pack_from_version_id(
                 project_id,
                 version_id,
@@ -49,18 +53,22 @@ pub async fn install_zipped_mrpack(
             .await?
         }
         CreatePackLocation::FromFile { path } => {
+            info!("install_zipped_mrpack: loading from file={path:?}");
             generate_pack_from_file(path, profile_path.clone()).await?
         }
     };
+    info!("install_zipped_mrpack: pack loaded ({} bytes), calling install_zipped_mrpack_files", create_pack.file.len());
 
-    // Install pack files, and if it fails, fail safely by removing the profile
     let result = install_zipped_mrpack_files(create_pack, false).await;
 
     match result {
-        Ok(profile) => Ok(profile),
+        Ok(profile) => {
+            info!("install_zipped_mrpack: completed ok, profile={profile}");
+            Ok(profile)
+        }
         Err(err) => {
+            tracing::error!("install_zipped_mrpack: failed: {err}, removing profile");
             let _ = crate::modrinth::api::profile::remove(&profile_path).await;
-
             Err(err)
         }
     }
@@ -72,10 +80,12 @@ pub async fn install_zipped_mrpack_files(
     create_pack: CreatePack,
     ignore_lock: bool,
 ) -> crate::modrinth::Result<String> {
+    info!("install_zipped_mrpack_files: getting state");
     let state = &State::get().await?;
+    info!("install_zipped_mrpack_files: state ok");
 
     let file = create_pack.file;
-    let description = create_pack.description.clone(); // make a copy for profile edit function
+    let description = create_pack.description.clone();
     let icon = create_pack.description.icon;
     let project_id = create_pack.description.project_id;
     let version_id = create_pack.description.version_id;
@@ -83,16 +93,16 @@ pub async fn install_zipped_mrpack_files(
     let profile_path = create_pack.description.profile_path;
     let icon_exists = icon.is_some();
 
+    info!("install_zipped_mrpack_files: opening zip reader ({} bytes)", file.len());
     let reader: Cursor<&bytes::Bytes> = Cursor::new(&file);
 
-    // Create zip reader around file
     let mut zip_reader = ZipFileReader::with_tokio(reader).await.map_err(|_| {
         crate::modrinth::Error::from(crate::modrinth::ErrorKind::InputError(
             "Failed to read input modpack zip".to_string(),
         ))
     })?;
+    info!("install_zipped_mrpack_files: zip opened, {} entries", zip_reader.file().entries().len());
 
-    // Extract index of modrinth.index.json
     let Some(manifest_idx) = zip_reader
         .file()
         .entries()
@@ -103,12 +113,19 @@ pub async fn install_zipped_mrpack_files(
             crate::modrinth::ErrorKind::InputError("No pack manifest found in mrpack".to_string()),
         ));
     };
+    info!("install_zipped_mrpack_files: manifest at index {manifest_idx}");
 
     let mut manifest = String::new();
     let mut reader = zip_reader.reader_with_entry(manifest_idx).await?;
     reader.read_to_string_checked(&mut manifest).await?;
 
     let pack: PackFormat = serde_json::from_str(&manifest)?;
+    info!(
+        "install_zipped_mrpack_files: manifest parsed, game={} name={} files={}",
+        pack.game,
+        pack.name,
+        pack.files.len()
+    );
 
     if &*pack.game != "minecraft" {
         return Err(crate::modrinth::ErrorKind::InputError(
@@ -117,7 +134,7 @@ pub async fn install_zipped_mrpack_files(
         .into());
     }
 
-    // Sets generated profile attributes to the pack ones (using profile::edit)
+    info!("install_zipped_mrpack_files: calling set_profile_information");
     set_profile_information(
         profile_path.clone(),
         &description,
@@ -126,8 +143,10 @@ pub async fn install_zipped_mrpack_files(
         ignore_lock,
     )
     .await?;
+    info!("install_zipped_mrpack_files: set_profile_information done");
 
     let profile_path = profile_path.clone();
+    info!("install_zipped_mrpack_files: initializing loading bar");
     let loading_bar = init_or_edit_loading(
         existing_loading_bar,
         LoadingBarType::PackDownload {
@@ -141,8 +160,10 @@ pub async fn install_zipped_mrpack_files(
         "Downloading modpack",
     )
     .await?;
+    info!("install_zipped_mrpack_files: loading bar ready");
 
     let num_files = pack.files.len();
+    info!("install_zipped_mrpack_files: downloading {num_files} mod files");
     loading_try_for_each_concurrent(
         futures::stream::iter(pack.files.into_iter()).map(Ok::<PackFile, crate::modrinth::Error>),
         None,
@@ -196,6 +217,7 @@ pub async fn install_zipped_mrpack_files(
     )
     .await?;
 
+    info!("install_zipped_mrpack_files: mod files downloaded, extracting overrides");
     emit_loading(&loading_bar, 0.0, Some("Extracting overrides"))?;
 
     let override_file_entries = zip_reader
@@ -259,8 +281,8 @@ pub async fn install_zipped_mrpack_files(
         )?;
     }
 
-    // If the icon doesn't exist, we expect icon.png to be a potential icon.
-    // If it doesn't exist, and an override to icon.png exists, cache and use that
+    info!("install_zipped_mrpack_files: overrides extracted ({override_file_entries_count} files)");
+
     let potential_icon = profile::get_full_path(&profile_path)
         .await?
         .join("icon.png");
@@ -268,9 +290,16 @@ pub async fn install_zipped_mrpack_files(
         profile::edit_icon(&profile_path, Some(&potential_icon)).await?;
     }
 
-    if let Some(profile_val) = profile::get(&profile_path).await? {
-        crate::modrinth::launcher::install_minecraft(&profile_val, Some(loading_bar), false)
-            .await?;
+    match profile::get(&profile_path).await? {
+        Some(profile_val) => {
+            info!("install_zipped_mrpack_files: calling install_minecraft for {}", profile_val.name);
+            crate::modrinth::launcher::install_minecraft(&profile_val, Some(loading_bar), false)
+                .await?;
+            info!("install_zipped_mrpack_files: install_minecraft done");
+        }
+        None => {
+            warn!("install_zipped_mrpack_files: profile not found after install, skipping install_minecraft");
+        }
     }
 
     Ok::<String, crate::modrinth::Error>(profile_path.clone())
