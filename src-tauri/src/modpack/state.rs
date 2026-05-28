@@ -14,7 +14,7 @@ pub struct ModpackState {
 fn data_dir() -> PathBuf {
     dirs::data_dir()
         .unwrap_or_else(|| PathBuf::from("."))
-        .join("com.melorium.launcher")
+        .join("primalcat.melorium")
 }
 
 pub async fn load() -> ModpackState {

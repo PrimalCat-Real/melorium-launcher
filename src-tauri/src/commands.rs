@@ -11,7 +11,7 @@ use tracing::info;
 pub async fn download_minecraft(app_handle: tauri::AppHandle) -> Result<(), String> {
     info!("Initializing state for download...");
     let _ = crate::modrinth::EventState::init(app_handle.clone()).await;
-    let _ = State::init("com.melorium.launcher".to_string()).await;
+    let _ = State::init("primalcat.melorium".to_string()).await;
 
     let _state = State::get().await.map_err(|e| e.to_string())?;
 
@@ -51,7 +51,7 @@ pub async fn download_minecraft(app_handle: tauri::AppHandle) -> Result<(), Stri
 pub async fn play_minecraft(app_handle: tauri::AppHandle) -> Result<(), String> {
     info!("Initializing state for play...");
     let _ = crate::modrinth::EventState::init(app_handle.clone()).await;
-    let _ = State::init("com.melorium.launcher".to_string()).await;
+    let _ = State::init("primalcat.melorium".to_string()).await;
     let state = State::get().await.map_err(|e| e.to_string())?;
 
     info!("Setting up dummy credentials 'Test'...");
@@ -178,7 +178,7 @@ pub fn check_install_path(path: String) -> PathCheckResult {
 
 #[tauri::command]
 pub async fn set_memory_mb(mb: u32) -> Result<(), String> {
-    let _ = crate::modrinth::State::init("com.melorium.launcher".to_string()).await;
+    let _ = crate::modrinth::State::init("primalcat.melorium".to_string()).await;
     let mut settings = crate::modrinth::api::settings::get()
         .await
         .map_err(|err| err.to_string())?;
@@ -211,7 +211,7 @@ pub async fn install_or_update_modpack(app_handle: tauri::AppHandle, path: Strin
         tracing::warn!("install_or_update_modpack: EventState::init failed: {err}");
     }
 
-    if let Err(err) = State::init("com.melorium.launcher".to_string()).await {
+    if let Err(err) = State::init("primalcat.melorium".to_string()).await {
         tracing::error!("install_or_update_modpack: State::init failed: {err}");
         return Err(err.to_string());
     }
@@ -235,7 +235,7 @@ pub async fn install_or_update_modpack(app_handle: tauri::AppHandle, path: Strin
 pub async fn play_modpack(app_handle: tauri::AppHandle, username: String, memory_mb: u32) -> Result<(), String> {
     info!("Initializing state for modpack launch...");
     let _ = crate::modrinth::EventState::init(app_handle.clone()).await;
-    let _ = State::init("com.melorium.launcher".to_string()).await;
+    let _ = State::init("primalcat.melorium".to_string()).await;
     let state = State::get().await.map_err(|err| err.to_string())?;
 
     let _ = sqlx::query(
