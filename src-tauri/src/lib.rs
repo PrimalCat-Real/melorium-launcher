@@ -1,3 +1,4 @@
+pub mod cleanup;
 pub mod commands;
 pub mod modpack;
 pub mod modrinth;
@@ -9,7 +10,10 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_dialog::init())
-        .setup(|_app| Ok(()))
+        .setup(|_app| {
+            cleanup::run();
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             commands::download_minecraft,
             commands::play_minecraft,
