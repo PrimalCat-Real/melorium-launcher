@@ -17,6 +17,7 @@ interface PathCheckResult {
     ok: boolean
     error_kind: string | null
     free_bytes: number | null
+    suggested_path: string | null
 }
 
 interface PathSelectorProps {
@@ -25,6 +26,7 @@ interface PathSelectorProps {
 
 const PathSelector = ({ onInstall }: PathSelectorProps) => {
     const rawPath = useGameStateStore(state => state.rawPath)
+    const setRawPath = useGameStateStore(state => state.setRawPath)
     const [pathStatus, setPathStatus] = useState<PathSelectionStatusType | null>(null)
     const [checking, setChecking] = useState(false)
 
@@ -36,6 +38,10 @@ const PathSelector = ({ onInstall }: PathSelectorProps) => {
         setChecking(true)
         invoke<PathCheckResult>('check_install_path', { path: rawPath })
             .then(result => {
+                if (result.suggested_path) {
+                    setRawPath(result.suggested_path)
+                    return
+                }
                 if (result.ok) {
                     setPathStatus(PathSelectionStatusFactory.pathSuccess())
                     return
@@ -53,7 +59,7 @@ const PathSelector = ({ onInstall }: PathSelectorProps) => {
             })
             .catch(() => setPathStatus(PathSelectionStatusFactory.custom('Ошибка проверки пути')))
             .finally(() => setChecking(false))
-    }, [rawPath])
+    }, [rawPath, setRawPath])
 
     const canInstall = !checking && pathStatus?.kind === 'success_init'
 

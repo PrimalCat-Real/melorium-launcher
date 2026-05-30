@@ -251,11 +251,16 @@ impl DirectoryInfo {
                 .await?;
 
                 if !is_dir_writeable(&move_dir).await? {
-                    return Err(crate::modrinth::ErrorKind::DirectoryMoveError(format!(
-                        "Cannot move directory to {}: directory is not writeable",
-                        move_dir.display()
-                    ))
-                    .into());
+                    let fallback = app_dir.join("Melorium");
+                    tracing::warn!(
+                        "move_launcher_directory: {:?} is not writeable, resetting to {:?}",
+                        move_dir,
+                        fallback
+                    );
+                    settings.custom_dir = Some(fallback.to_string_lossy().into_owned());
+                    settings.prev_custom_dir = None;
+                    settings.update(exec).await?;
+                    return Ok(());
                 }
 
                 const MOVE_DIRS: &[&str] = &[

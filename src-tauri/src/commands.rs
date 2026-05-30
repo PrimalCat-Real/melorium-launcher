@@ -103,9 +103,16 @@ pub struct PathCheckResult {
     pub ok: bool,
     pub error_kind: Option<String>,
     pub free_bytes: Option<u64>,
+    pub suggested_path: Option<String>,
 }
 
 const MIN_FREE_BYTES: u64 = 2 * 1024 * 1024 * 1024;
+
+fn dir_is_empty(path: &std::path::Path) -> bool {
+    std::fs::read_dir(path)
+        .map(|mut entries| entries.next().is_none())
+        .unwrap_or(true)
+}
 
 #[tauri::command]
 pub fn check_install_path(path: String) -> PathCheckResult {
@@ -114,7 +121,16 @@ pub fn check_install_path(path: String) -> PathCheckResult {
 
     let target = Path::new(&path);
 
-    // Walk up to find the nearest existing ancestor
+    // If the target exists and is a non-empty directory, suggest a Melorium subfolder
+    let suggested_path = if target.is_dir() && !dir_is_empty(target) {
+        let candidate = target.join("Melorium");
+        let name = candidate.to_string_lossy().into_owned();
+        Some(name)
+    } else {
+        None
+    };
+
+    // Walk up to find the nearest existing ancestor for disk space check
     let existing = {
         let mut current = target;
         loop {
@@ -123,33 +139,11 @@ pub fn check_install_path(path: String) -> PathCheckResult {
             }
             match current.parent() {
                 Some(parent) => current = parent,
-                None => {
-                    return PathCheckResult {
-                        ok: false,
-                        error_kind: Some("no_permission".to_string()),
-                        free_bytes: None,
-                    };
-                }
+                None => break current,
             }
         }
     };
 
-    // Test write permission via a temp file
-    let test_file = existing.join(".melorium_write_test");
-    match std::fs::File::create(&test_file) {
-        Ok(_) => {
-            let _ = std::fs::remove_file(&test_file);
-        }
-        Err(_) => {
-            return PathCheckResult {
-                ok: false,
-                error_kind: Some("no_permission".to_string()),
-                free_bytes: None,
-            };
-        }
-    }
-
-    // Find the disk that covers this path and check free space
     let disks = Disks::new_with_refreshed_list();
     let free_bytes = disks
         .iter()
@@ -162,16 +156,19 @@ pub fn check_install_path(path: String) -> PathCheckResult {
             ok: false,
             error_kind: Some("no_free_space".to_string()),
             free_bytes: Some(free),
+            suggested_path,
         },
         Some(free) => PathCheckResult {
             ok: true,
             error_kind: None,
             free_bytes: Some(free),
+            suggested_path,
         },
         None => PathCheckResult {
             ok: true,
             error_kind: None,
             free_bytes: None,
+            suggested_path,
         },
     }
 }
@@ -186,6 +183,12 @@ pub async fn set_memory_mb(mb: u32) -> Result<(), String> {
     crate::modrinth::api::settings::set(settings)
         .await
         .map_err(|err| err.to_string())
+}
+
+#[tauri::command]
+pub fn get_default_install_path() -> Option<String> {
+    dirs::document_dir()
+        .map(|d| d.join("Melorium").to_string_lossy().into_owned())
 }
 
 #[tauri::command]
